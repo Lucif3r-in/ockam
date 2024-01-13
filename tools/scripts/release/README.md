@@ -1,5 +1,9 @@
 # Ockam Scripts
 
+## Troubleshooting and Error Handling
+
+If you encounter issues during the release process, you can use the following tips to troubleshoot and handle errors:
+
 This folder contains scripts to release Ockam Rust crates. Note, to run these scripts you need to run Bash version 4 upwards. All commands should be called from the Ockam root path.
 To perform release, release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
 ```bash
@@ -71,12 +75,16 @@ For a manual release to be done, we should
 
 ## CI Release
 
+### Troubleshooting and Error Handling
+
+During the CI release, follow these steps to troubleshoot and handle common issues that may arise:
+
 Ockam release can also be done over CI either manually using the provided workflows, or automatically using the `release.sh` script. Release consists of
 
 - Crate Bump
 - Crates IO Release
 - Binary Release
-- Homebrew Repo Bump
+- ### Verifying Generated Binaries
 - Terraform Repo Bump
 - Terraform Binary Release
 
@@ -119,7 +127,9 @@ The release script also allows for modifications provided by the `bump` and `pub
 RELEASE_VERSION=major GITHUB_USERNAME=metaclips release.sh
 ```
 
-We can skip steps during a release by defining variable below as `true`
+### Debugging and Common Issues
+
+If you encounter common issues during the release process, follow these steps to debug and resolve the problem:
 - SKIP_OCKAM_BUMP - Skips Ockam bump
 - SKIP_OCKAM_PACKAGE_RELEASE - Skips Ockam Docker package release
 - SKIP_CRATES_IO_PUBLISH - Skips crates.io publish
@@ -135,7 +145,9 @@ SKIP_OCKAM_BUMP=true ./tools/scripts/release/release.sh
 
 The release script can be called from any path.
 
-We also have a script to delete draft release, to delete draft
+## Deleting Draft Releases
+
+If you need to delete a draft release, follow these steps to delete the draft:
 
 ```bash
 TAG_NAME=ockam_v0.71.0 ./delete_draft.sh
@@ -145,11 +157,13 @@ Where TAG_NAME is the tag of the draft release.
 
 ## Acceptance Test
 
-After a release, we can test all generated assets to ensure they work accurately, the acceptance script checks
+## Verifying Release Assets
+
+After a release, follow these steps to verify that all generated assets work accurately:
 
 - Test build our latest published Ockam crate from crates.io
 - Run Docker image
 - Build Homebrew
 - Build Terraform
 - Run our multi architecture binaries
-- Esure all creates are published to crates.io
+- - Test automated package installations and ensure compatibility
