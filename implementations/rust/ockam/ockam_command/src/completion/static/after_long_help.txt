@@ -14,7 +14,7 @@ If the directory doesn't exist, create it using the following command, replacing
 mkdir -p {dir}
 ```
 
-Generate the completion file by executing the relevant command for your shell. The file name must match the specific name for each shell.
+A The file name must match the specific name for each shell.
 
 ```sh
 # Bash
@@ -29,7 +29,7 @@ $ ockam completion --shell fish > ~/.config/fish/completions/ockam.fish
 
 #### Update Completion Cache
 
-After generating the completion file, it may be necessary to update your shell's completion cache to activate the changes:
+B\u003C!-- B<!-- After generating the completion file, it may be necessary to update your shell's completion cache to activate the changes:
 
 ```sh
 $ compinit
@@ -43,4 +43,4 @@ Upon successfully completing the steps outlined above:
 - The file will contain relevant completion definitions for Ockam commands and options.
 - The completion file will be saved in the designated directory for your shell.
 
-Congratulations! You have successfully created and integrated the Ockam completion file into your shell environment. As you type Ockam commands, you'll enjoy the convenience of auto-suggestions and completion.
+C\u003C!-- C<!-- Congratulations! You have successfully created and integrated the Ockam completion file into your shell environment. As you type Ockam commands, you'll enjoy the convenience of auto-suggestions and completion.-->-->
