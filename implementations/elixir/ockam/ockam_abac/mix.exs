@@ -48,9 +48,9 @@ defmodule Ockam.ABAC.MixProject do
     [
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
-      {:ockam, path: "../ockam"},
-      {:neotoma, git: "https://github.com/seancribbs/neotoma.git", runtime: false}
+      {:ex_doc, "~> 0.26", only: :dev, runtime: false},
+      {:ockam, "~> 1.3"},
+      {:neotoma, "~> 1.8", only: [:dev], runtime: true}
     ]
   end
 
