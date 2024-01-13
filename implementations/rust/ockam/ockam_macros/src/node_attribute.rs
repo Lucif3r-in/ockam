@@ -137,7 +137,7 @@ impl TestArguments {
         let mut ockam_crate = Attr::none(ctx, OCKAM_CRATE);
         let mut no_main = BoolAttr::none(ctx, NO_MAIN);
 
-        let p = parser(|meta| {
+        let p = syn::parse::Parser::parse(|meta| {
             if meta.path.is_ident(&OCKAM_CRATE) {
                 let value_expr: Expr = meta.value()?.parse()?;
                 if let Ok(path) = parse_lit_into_path(ctx, OCKAM_CRATE, &value_expr) {
@@ -156,7 +156,7 @@ impl TestArguments {
                 Ok(())
             }
         });
-        p.parse(args.clone().into()).unwrap_or_default();
+        syn::parse::Parser::parse(p, args.clone().into()).unwrap_or_default();
 
         Self {
             ockam_crate: ockam_crate.get().unwrap_or(quote! { ockam }),
