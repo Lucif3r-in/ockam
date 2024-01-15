@@ -6,16 +6,18 @@ permissions:
 on:
   merge_group:
   pull_request:
+    types: [opened, synchronize, reopened]
   push:
     branches:
       - develop
   workflow_dispatch:
+    types: [completed]
     inputs:
       commit_sha:
         description: Git commit sha, on which, to run this workflow
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  group: ${{ github.workflow }}-${{ github.run_id }}-${{ github.event_name }}
   cancel-in-progress: true
 
 defaults:
@@ -50,7 +52,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
         with:
           ref: ${{ github.event.inputs.commit_sha }}
-      - shell: sh
+      - shell: bash
         run: eclint -color=always
 
   # Semgrep is a static analysis tool to lint code for patterns we want to forbid
