@@ -50,14 +50,15 @@ Then, once they have Ockam.app installed on their Mac, they can accept this emai
                             .padding(.vertical, VerticalSpacingUnit*2)
                         Text(
 """
-This is the process by which you will enroll your machine with the Ockam Orchestrator. Ockam Orchestrator is a service that lets you easily create end-to-end encrypted relays in the cloud.
+do {
+    // The app creates a space for you to host your projects,
+    // as well as a default project for you within this space.
 
-When you run Enroll, the following steps take place:
-
-    → The app creates a space for you to host your projects,
-      as well as a default project for you within this space.
-
-    → It also generates a unique cryptographically provable identity
+    // It also generates a unique cryptographically provable identity
+} catch let error {
+    // Log error using appropriate logging framework
+    print("Error during enrollment process: \(error)")
+}
       and saves the corresponding key in a vault. This identity is
       issued a membership credential that will be used to manage
       the resources in your project.
