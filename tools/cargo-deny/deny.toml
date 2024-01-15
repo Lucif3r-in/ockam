@@ -36,7 +36,7 @@ license-files = [
 
 [[licenses.clarify]]
 name = "webpki"
-expression = "ISC"
+expression = "MIT"
 license-files = [
   { path = "LICENSE", hash = 0x001c7e6c },
 ]
