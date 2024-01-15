@@ -1,21 +1,6 @@
-use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
-use syn::meta::parser;
-use syn::parse::Parser;
-use syn::{Expr, ItemFn, ReturnType};
-
-use crate::internals::attr::{parse_lit_into_path, Attr, BoolAttr};
-use crate::{ast, check, ctx::Context, symbol::*};
-
-pub(crate) fn expand(
-    input_fn: ItemFn,
-    attrs: &TokenStream,
-) -> Result<TokenStream, Vec<syn::Error>> {
-    let ctx = Context::new();
-    let cont = Container::from_ast(&ctx, &input_fn, attrs);
-    ctx.check()?;
-    Ok(output(cont))
-}
+use ockam_core::error::{miette, Context as _, IntoDiagnostic, Error};
+use r3bl_rs_utils_core::*;
+use r3bl_tuify::*;
 
 fn output(cont: Container) -> TokenStream {
     let body = &cont.original_fn.block;

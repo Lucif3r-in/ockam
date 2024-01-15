@@ -12,9 +12,13 @@ use tokio::time::sleep;
 
 pub use colors::*;
 pub use fmt::*;
-use self::mode::*;
+use mode::*;
 use ockam_core::env::{get_env, get_env_with_default, FromString};
-use ockam_core::errcode::Kind;
+use ockam_core::error::{miette, Context as _, IntoDiagnostic, Error};
+use r3bl_rs_utils_core::*;
+use r3bl_tuify::*;
+
+ pub mod error;
 use r3bl_rs_utils_core::*;
 use r3bl_tuify::*;
 
