@@ -39,17 +39,15 @@ defmodule Ockam.Services.PubSub do
   def handle_message(message, state) do
     payload = Message.payload(message)
 
-    with {:ok, name_topic, ""} <- :bare.decode(payload, :string)
-         if name_topic == nil or name == nil or topic == nil , do
-           Logger.error("Invalid message format: #{inspect(payload)}")
-         end,
-         [name, topic] = String.split(name_topic, ":")
+    with {:ok, name_topic, ""} <- :bare.decode(payload, :string),
+     [name, topic] = String.split(name_topic, ":"),
+     name != nil and topic != nil do
       return_route = Message.return_route(message)
       subscribe(name, topic, return_route, state)
-    else
-      err ->
-        Logger.error("Invalid message format: #{inspect(payload)}, reason #{inspect(err)}")
-    end
+  else
+    err ->
+      Logger.error("Invalid message format: #{inspect(payload)}, reason #{inspect(err)}")
+  end
   end
 
   def subscribe(name, topic, route, state) do
