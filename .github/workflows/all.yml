@@ -8,6 +8,8 @@ on:
   pull_request:
   push:
     branches:
+      - main
+    branches:
       - develop
   workflow_dispatch:
     inputs:
@@ -36,12 +38,12 @@ jobs:
       COMMITLINT_CONFIG_PATH: tools/commitlint/commitlint.config.js
 
     steps:
-      - name: Check Commit Lint
+      - name: Check Commit Lint and Test
         uses: build-trust/.github/actions/commit_lint@custom-actions
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  lint_editorconfig:
+  test_editorconfig:
     name: All - lint_editorconfig
     runs-on: ubuntu-20.04
     container: # gitlab.com/greut/eclint
@@ -64,7 +66,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
         with:
           ref: ${{ github.event.inputs.commit_sha }}
-      - name: Run Semgrep
+      - name: Test Semgrep Results
         # .semgrepignore is not processed outside of working directory. See https://github.com/returntocorp/semgrep/issues/5669
         run: |
           mv tools/semgrep/.semgrepignore . & \
