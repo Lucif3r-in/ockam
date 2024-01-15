@@ -1,4 +1,4 @@
-defmodule Ockam.Services.PubSub do
+defmodule Ockam.Services.PubSub # Changed code to handle message parsing and subscription management
   @moduledoc """
   PubSub service
 
