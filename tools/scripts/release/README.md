@@ -3,7 +3,7 @@
 This folder contains scripts to release Ockam Rust crates. Note, to run these scripts you need to run Bash version 4 upwards. All commands should be called from the Ockam root path.
 To perform release, release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
 ```bash
-GIT_TAG="a_more_recent_git_tag_v0.0.0" tools/scripts/release/changelog.sh
+tools/scripts/release/changelog.sh GIT_TAG="a_more_recent_git_tag_v0.0.0"
 ```
 This is same for crate bump, crate publish and tagging scripts.
 
@@ -95,7 +95,7 @@ IS_DRAFT_RELEASE=true ./tools/scripts/release/release.sh
 On a successful run will,
 - Bump Ockam crates and create a pull request in the /ockam repo
 - Create Github release as draft with built binaries and NIFs
-- Release Ockam docker image with a draft tag
+- Release Ockam docker image
 - Bump Homebrew version and create a pull request for review in /homebrew-ockam repository
 - Bump Terraform version and create a pull request for review in /terraform-provider-ockam repository
 - Create Terraform draft release in /terraform-provider-ockam repository
@@ -147,7 +147,7 @@ Where TAG_NAME is the tag of the draft release.
 
 After a release, we can test all generated assets to ensure they work accurately, the acceptance script checks
 
-- Test build our latest published Ockam crate from crates.io
+- Verify the latest published Ockam crate from crates.io
 - Run Docker image
 - Build Homebrew
 - Build Terraform
