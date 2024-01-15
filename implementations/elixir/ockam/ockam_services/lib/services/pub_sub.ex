@@ -1,10 +1,10 @@
-defmodule Ockam.Services.PubSub # Changed code to handle message parsing and subscription management
+defmodule Ockam.Services.PubSub
   @moduledoc """
   PubSub service
 
   Subscribes workers (by return route) to a string topic
 
-  Each topic can have multiple subscrtiptions
+  Each topic can have multiple subscriptions
   Each subscription has a unique name and topic
 
   Name and topic are parsed from the payload as a BARE `string` type
@@ -12,6 +12,7 @@ defmodule Ockam.Services.PubSub # Changed code to handle message parsing and sub
   Name cannot contain `:` symbol
 
   New subscriptions with the same name replace previous ones.
+...
 
   Topic address is created from topic prefix and topic as <prefix>_<topic>
   e.g. if prefix is `pub_sub_t` and topic is `my_topic`, topic address will be: `pub_sub_t_my_topic`
