@@ -211,6 +211,21 @@ impl<W: TerminalWriter> Terminal<W> {
         let max_width_col_count = get_size().map(|it| it.col_count).unwrap_or(ch!(80)).into();
         Self {
             stdout,
+impl TerminalStream<TerminalStream<T>> {
+    pub fn no_color(&self) -> bool {
+        self.no_color
+    }
+}
+impl TerminalStream<TerminalStream<T>> {
+    pub fn no_color(&self) -> bool {
+        self.no_color
+    }
+}
+impl TerminalStream<TerminalStream<T>> {
+    pub fn no_color(&self) -> bool {
+        self.no_color
+    }
+}
             stderr,
             quiet,
             no_input,
