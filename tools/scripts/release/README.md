@@ -1,7 +1,7 @@
 # Ockam Scripts
 
 This folder contains scripts to release Ockam Rust crates. Note, to run these scripts you need to run Bash version 4 upwards. All commands should be called from the Ockam root path.
-To perform release, release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
+To perform a release, the release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
 ```bash
 tools/scripts/release/changelog.sh GIT_TAG="a_more_recent_git_tag_v0.0.0"
 ```
@@ -18,7 +18,7 @@ where RELEASE_VERSION is the [version](https://github.com/crate-ci/cargo-release
 
 We can also indicate crates to follow a different release version, ignoring `OCKAM_BUMP_RELEASE_VERSION`. To bump a crate to a different version, we indicate crates and the bumped version in `OCKAM_BUMP_MODIFIED_RELEASE`
 ```bash
-OCKAM_BUMP_MODIFIED_RELEASE="signature_core:patch ockam_entity:major" OCKAM_BUMP_RELEASE_VERSION=minor tools/scripts/release/crate-bump.sh
+OCKAM_BUMP_MODIFIED_RELEASE="signature_core:patch ockam_entity:major" OCKAM_BUMP_RELEASE_VERSION=minor tools/scripts/release/tools/scripts/release/crate-bump.sh.sh
 ```
 this bumps `signature_core` as a `patch`, `ockam_entity` as `major` and every other crate as `minor`.
 
@@ -28,7 +28,7 @@ OCKAM_BUMP_MODIFIED_RELEASE="signature_core:patch ockam_entity:major" OCKAM_BUMP
 ```
 only signature_core and ockam_entity crates are bumped.
 
-Crates whose transitive dependencies were `only` bumped can be version-bumped with a specified version using the `OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION` definition so as to follow a different release version
+Crates whose transitive dependencies were `only` bumped can be version-bumped with a specified version using the `OOCKAM_BUMP_BUMPED_DEP_CRATES_VERSION=patch=patch` definition so as to follow a different release version
 ```bash
 OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION=patch RELEASE_VERSION=minor tools/scripts/release/crate-bump.sh
 ```
