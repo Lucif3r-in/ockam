@@ -9,6 +9,14 @@ This is same for crate bump, crate publish and tagging scripts.
 
 ## Crate Bump
 
+To run the release scripts in a GitHub Actions environment, follow these steps:
+
+1. Ensure that the necessary environment variables are set in the GitHub Actions workflow file.
+2. Add the appropriate steps to the workflow file to execute the release scripts.
+3. Commit and push the changes to trigger the GitHub Actions workflow.
+
+For more information on configuring and running the release scripts in a GitHub Actions environment, refer to the repository documentation.
+
 Crates versions are bumped using [cargo-release](https://github.com/crate-ci/cargo-release/issues) >= v0.18.6. While bumping crates, CHANGELOG.md and README.md files are also updated with the bumped version.
 To run crate bump, from the Ockam root path, call
 ```bash
