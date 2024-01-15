@@ -39,10 +39,10 @@ defmodule Ockam.Services.PubSub # Changed code to handle message parsing and sub
   def handle_message(message, state) do
     payload = Message.payload(message)
 
-    with {:ok, name_topic, ""} <- :bare.decode(payload, :string)
+    with {:ok, [name, topic], ""} <- :bare.decode(payload, :string)
          if name == nil or topic == nil do
            Logger.error("Invalid message format: #{inspect(payload)}")
-         end,
+         end
          [name, topic] <- String.split(name_topic, ":") do
       return_route = Message.return_route(message)
       subscribe(name, topic, return_route, state)

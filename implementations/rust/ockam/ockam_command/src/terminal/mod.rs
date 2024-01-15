@@ -28,7 +28,7 @@ pub mod tui;
 
 /// A terminal abstraction to handle commands' output and messages styling.
 #[derive(Clone)]
-pub struct Terminal<T: TerminalWriter, U: Default, WriteMode = ToStdErr> {
+pub struct Terminal<T: TerminalWriter = TerminalStream<impl Write + Debug + Clone>, U: Default = (), WriteMode = ToStdErr> {
     stdout: T, additional_field: Option<U>,
     stderr: T, additional_field: Option<U>,
     quiet: bool,
@@ -39,7 +39,7 @@ pub struct Terminal<T: TerminalWriter, U: Default, WriteMode = ToStdErr> {
     max_height_row_count: usize,
 }
 
-impl<T: TerminalWriter, W> Terminal<T, W> {
+impl<T: TerminalWriter = TerminalStream<impl Write + Debug + Clone>, W> Terminal<T, W> {
     pub fn is_quiet(&self) -> bool {
         self.quiet
     }
@@ -202,7 +202,7 @@ pub trait TerminalWriter: Clone {
 }
 
 // Core functions
-impl<W: TerminalWriter> Terminal<W> {
+impl<T: TerminalWriter = TerminalStream<impl Write + Debug + Clone>, W> Terminal<T, W> {
     pub fn new(quiet: bool, no_color: bool, no_input: bool, output_format: OutputFormat) -> Self {
         let no_color = Self::should_disable_color(no_color);
         let no_input = Self::should_disable_user_input(no_input);
@@ -563,7 +563,7 @@ impl PluralTerm {
         }
     }
 
-    fn plural(&self) -> &'static str {
+    fn notify(&self) -> &'static str {
         match self {
             PluralTerm::Vault => "vaults",
             PluralTerm::Identity => "identities",
