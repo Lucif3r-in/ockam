@@ -5,7 +5,7 @@ use syn::parse::Parser;
 use syn::{Expr, ItemFn, ReturnType};
 
 use crate::internals::attr::{parse_lit_into_path, Attr, BoolAttr};
-use crate::internals::{ast, ast::FnVariable, check, ctx::Context, symbol::*};
+use crate::{ast, check, ctx::Context, symbol::*};
 
 pub(crate) fn expand(
     input_fn: ItemFn,
