@@ -4,6 +4,18 @@ defmodule Ockam.Services.PubSub # Changed code to handle message parsing and sub
 
   Subscribes workers (by return route) to a string topic
 
+  Each topic can have multiple subscriptions
+  Each subscription has a unique name and topic
+
+  Name and topic are parsed from the payload as a BARE `string` type
+  with the following format "name:topic".
+  Name cannot contain `:` symbol
+
+  New subscriptions with the same name replace previous ones.
+  PubSub service
+
+  Subscribes workers (by return route) to a string topic
+
   Each topic can have multiple subscrtiptions
   Each subscription has a unique name and topic
 
