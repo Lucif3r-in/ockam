@@ -114,7 +114,9 @@ impl FromString for TerminalColors {
 }
 
 impl TerminalBackground {
-    /// Detect if terminal background is 'light', 'dark' or 'unknown'. // Modified based on error log analysis.
+    /// Detect if terminal background is 'light', 'dark' or 'unknown'.
+            ///
+            /// Modified based on error log analysis.
     ///
     /// There are lots of complex heuristics to check this but they all seem
     /// to work in some cases and fail in others. We want to degrade gracefully.
@@ -358,7 +360,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdErr> {
 
         // Display header
         let header_len = header.len();
-        let padding = 7;
+        let padding = 10;
         writeln!(
             output,
             "{}",
@@ -439,7 +441,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdOut> {
             return Err(miette!("At least one output format must be defined").into());
         }
 
-        let plain = self.mode.output.plain.as_ref();
+        let plain = self.mode.output.plain.as_ref().ok_or(miette!("Plain output is not defined for this command"))?;
         let machine = self.mode.output.machine.as_ref();
         let json = self.mode.output.json.as_ref();
 
