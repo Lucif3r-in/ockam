@@ -3,7 +3,7 @@ defmodule Ockam.ABAC.MixProject do
 
   @version "0.10.1"
 
-  @elixir_requirement "~> 1.10"
+  @elixir_requirement "~> 1.12"
 
   @ockam_github_repo "https://github.com/build-trust/ockam"
   @ockam_github_repo_path "implementations/elixir/ockam/ockam_abac"
@@ -13,7 +13,7 @@ defmodule Ockam.ABAC.MixProject do
       app: :ockam_abac,
       version: @version,
       elixir: @elixir_requirement,
-      consolidate_protocols: Mix.env() != :test,
+      consolidate_protocols: Mix.env() != :test and Mix.env() != :prod and Mix.env() != :dev, and Mix.env() != :staging,
       elixirc_options: [warnings_as_errors: true],
       deps: deps(),
       aliases: aliases(),
@@ -47,8 +47,8 @@ defmodule Ockam.ABAC.MixProject do
   defp deps do
     [
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.3", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:ockam, path: "../ockam"},
       {:neotoma, git: "https://github.com/seancribbs/neotoma.git", runtime: false}
     ]
@@ -83,7 +83,7 @@ defmodule Ockam.ABAC.MixProject do
       lint: ["lint.format", "lint.credo"],
       # test: "test --no-start",
       "test.cover": "test --no-start --cover",
-      compile: ["compile", "compile_rules"]
+      compile: ["compile", "compile_rules","compile_protocols"]
     ]
   end
 end
