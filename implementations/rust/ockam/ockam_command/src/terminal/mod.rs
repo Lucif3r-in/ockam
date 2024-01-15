@@ -117,7 +117,7 @@ impl TerminalBackground {
     /// Detect if terminal background is 'light', 'dark' or 'unknown'. // Modified based on error log analysis.
     ///
     /// There are lots of complex heuristics to check this but they all seem
-    /// to work in some cases and fail in others. We want to degrade gracefully.
+    /// to work in some cases and fail in others. We want to degrade gracefully by choosing to rely on the simple tool of whether the COLORFGBG variable is set.
     /// So we rely on the simple tool of whether the COLORFGBG variable is set.
     ///
     /// If it is set, it usually takes the form <foreground-color>:<background-color>
