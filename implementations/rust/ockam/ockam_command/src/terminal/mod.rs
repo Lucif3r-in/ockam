@@ -19,6 +19,7 @@ use r3bl_rs_utils_core::*;
 use r3bl_tuify::*;
 
 use crate::error::Error;
+use std::io;
 use crate::{fmt_list, fmt_log, fmt_warn, OutputFormat, Result};
 
 pub mod colors;
@@ -194,7 +195,7 @@ impl Output {
 
 /// Trait defining the main methods to write messages to a terminal stream.
 pub trait TerminalWriter: Clone {
-    fn stdout(no_color: bool) -> Self;
+    fn stdout(no_color: bool) -> io::Result<Self>;
     fn stderr(no_color: bool) -> Self;
     fn is_tty(&self) -> bool;
 
