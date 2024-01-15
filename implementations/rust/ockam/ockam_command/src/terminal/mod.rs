@@ -25,6 +25,7 @@ pub mod colors;
 pub mod fmt;
 pub mod term;
 pub use r3bl_tuify::*;
+use crate::output::Output;
 pub mod tui;
 
 /// A terminal abstraction to handle commands' output and messages styling.
@@ -386,7 +387,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdErr> {
         for item in items {
             let item = item.list_output()?;
             item.split('\n').for_each(|line| {
-                let _ = writeln!(output, "{}", &fmt_list!("{line}"));
+                let _ = writeln!(output, "{}", &fmt_list!(line));
             });
             writeln!(output)?;
         }
@@ -540,6 +541,14 @@ impl<W: TerminalWriter> Terminal<W> {
 }
 
 pub enum PluralTerm {
+    Vault,
+    Identity,
+    Node,
+    Relay,
+    Space,
+    Project,
+    Inlet,
+    Outlet,
     Vault,
     Identity,
     Node,
