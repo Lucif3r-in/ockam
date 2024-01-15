@@ -69,7 +69,7 @@ When you run Enroll, the following steps take place:
                             .font(.title)
                             .padding(.vertical, VerticalSpacingUnit*2)
 
-                        if status == OrchestratorStatus.Disconnected {
+                        if status == OrchestratorStatus.Disconnected.eraseToAnyPublisher() {
                             Text(
     """
     During the enrollment process, your web browser will be launched with a link that will ask you to authenticate.
