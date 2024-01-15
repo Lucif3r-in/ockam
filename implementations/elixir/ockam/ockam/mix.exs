@@ -3,7 +3,7 @@ defmodule Ockam.MixProject do
 
   @version "0.1.0"
 
-  @elixir_requirement "~> 1.10"
+  @elixir_requirement "~> 1.12"
 
   @ockam_github_repo "https://github.com/build-trust/ockam"
   @ockam_github_repo_path "implementations/elixir/ockam/ockam"
@@ -12,7 +12,7 @@ defmodule Ockam.MixProject do
     [
       app: :ockam,
       version: @version,
-      elixir: @elixir_requirement,
+      elixir: @elixir_requirement, 
       consolidate_protocols: Mix.env() != :test,
       elixirc_options: [warnings_as_errors: true],
       deps: deps(),
@@ -53,11 +53,11 @@ defmodule Ockam.MixProject do
       {:cbor, "~> 1.0.0"},
       {:ockam_typed_cbor, path: "../ockam_typed_cbor"},
       {:gen_state_machine, "~> 3.0"},
-      {:telemetry, "~> 1.0", optional: true},
-      {:ranch, "~> 2.1", optional: true},
-      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
+      {:telemetry, "~> 1.4"},
+      {:ranch, "~> 1.4"},
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
+      {:credo, "~> 1.6.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.3", only: [:dev], runtime: false},
       {:ockly, path: "../ockly"}
     ]
   end
