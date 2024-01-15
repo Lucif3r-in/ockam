@@ -411,7 +411,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdErr> {
 }
 
 // Finished mode
-impl<W: TerminalWriter> Terminal<W, ToStdOut> {
+impl<W: TerminalWriter> Terminal<W, super::status::ConfirmResult> {
     pub fn is_tty(&self) -> bool {
         self.stdout.is_tty()
     }
@@ -446,7 +446,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdOut> {
 
         let msg = match self.output_format {
             OutputFormat::Plain => {
-                if self.stdout.is_tty() {
+                if self.no_color && self.stdout.is_tty() {
                     // If not set, fallback with the following priority: Machine -> JSON
                     match (plain, machine, json) {
                         (Some(plain), _, _) => plain,
