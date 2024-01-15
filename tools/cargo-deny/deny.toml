@@ -16,7 +16,12 @@ allow = [
   "ISC",
   "BlueOak-1.0.0",
   "BSL-1.0",
-]
+  "BSD-3-Clause",
+  "BSD-2-Clause",
+  "0BSD",
+  "ISC",
+  "BlueOak-1.0.0",
+  "BSL-1.0",
 exceptions = [
   { allow = ["LicenseRef-Ring-ISC-OpenSSL"], name = "ring", version = "*" },
   { allow = ["Unicode-DFS-2016"], name = "unicode-ident", version = "*" },
