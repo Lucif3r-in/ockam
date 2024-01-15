@@ -22,9 +22,12 @@ defmodule Ockam.Metrics.MixProject do
       dialyzer: [flags: [:error_handling]],
 
       # test
-      test_coverage: [output: "_build/cover"]
+      # Include GitHub Actions configuration
+      test_coverage: [output: "_build/cover"],
       preferred_cli_env: ["test.cover": :test],
       elixirc_paths: elixirc_paths(Mix.env()),
+      folder: "config",
+      files: ["github_actions.yml"],
 
       # hex
       description: "Ockam Metrics",
