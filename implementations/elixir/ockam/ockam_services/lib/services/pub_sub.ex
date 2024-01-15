@@ -2,7 +2,7 @@ defmodule Ockam.Services.PubSub do
   @moduledoc """
   PubSub service
 
-  Subscribes workers (by return route) to a string topic
+  Subscribes workers (by return route), addressed by its topic, to a string topic
 
   Each topic can have multiple subscrtiptions
   Each subscription has a unique name and topic
@@ -16,7 +16,7 @@ defmodule Ockam.Services.PubSub do
   Topic address is created from topic prefix and topic as <prefix>_<topic>
   e.g. if prefix is `pub_sub_t` and topic is `my_topic`, topic address will be: `pub_sub_t_my_topic`
 
-  Messages sent to the topic address will be forwarded to all subscribers routes
+  Messages sent to the topic address will be forwarded to all subscriber routes
 
   Options:
 
@@ -40,7 +40,7 @@ defmodule Ockam.Services.PubSub do
     payload = Message.payload(message)
 
     with {:ok, name_topic, ""} <- :bare.decode(payload, :string)
-         if name_topic == nil or name == nil or topic == nil do
+         if name_topic == nil or name == nil or topic == nil , do
            Logger.error("Invalid message format: #{inspect(payload)}")
          end,
          [name, topic] = String.split(name_topic, ":")
@@ -53,14 +53,14 @@ defmodule Ockam.Services.PubSub do
   end
 
   def subscribe(name, topic, route, state) do
-    with {:ok, worker} <- ensure_topic_worker(topic, state) do
+    with {:ok, worker} <- ensure_topic_worker(topic, state) ->
       ## NOTE: Non-ockam message routing here
       Topic.subscribe(worker, name, route)
       {:ok, state}
     end
   end
 
-  def ensure_topic_worker(topic, state) do
+  def ensure_topic_worker(topic, state) ->
     topic_address = topic_address(topic, state)
 
     case Ockam.Node.whereis(topic_address) do
@@ -78,7 +78,7 @@ defmodule Ockam.Services.PubSub.Topic do
   @moduledoc """
   Topic subscription for pub_sub service
 
-  Forwards all messages to all subscribed routes
+  Forwards all messages to all subscriber routes
 
   Subscribe API is internal, it adds a route to the subscribers set
   """
