@@ -32,7 +32,7 @@ Crates whose transitive dependencies were `only` bumped can be version-bumped wi
 ```bash
 OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION=patch RELEASE_VERSION=minor tools/scripts/release/crate-bump.sh
 ```
-If `OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION` is not defined then transitive dependent crates are bumped as `minor`.
+If `OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION` is not defined then transitively dependent crates are bumped as `minor`.
 
 ## Changelog Generation (Requires zsh)
 
@@ -46,7 +46,7 @@ We can also generate changelog from a referenced `git tag`, changelog should be 
 
 ## Crate Publish
 
-Crates are published to `crates.io` using [cargo-release](https://github.com/crate-ci/cargo-release) right after bump. Only crates that have been updated (comparing `git diff` with last git tag) are published. Crates can also be excluded from being published using the `OCKAM_PUBLISH_EXCLUDE_CRATES` variable, to exclude crates, we can optionally specify crates that are to be excluded `OCKAM_PUBLISH_EXCLUDE_CRATES="signature_core ockam_core"`, where `signature_core` and `ockam_core` are excluded. Publish script can also be rerun after a recent fail, recently successfully published crates will automatically be detected and excluded. To indicate a script rerun we set the `OCKAM_PUBLISH_RECENT_FAILURE` env to a `true`.
+Crates are published to `crates.io` using [cargo-release](https://github.com/crate-ci/cargo-release) right after bump. Only crates that have been updated (comparing `git diff` with last git tag) are published. Crates can also be excluded from being published using the `OCKAM_PUBLISH_EXCLUDE_CRATES` variable, to exclude crates, we can optionally specify crates that are to be excluded `OCKAM_PUBLISH_EXCLUDE_CRATES="signature_core ockam_core"`, where `signature_core` and `ockam_core` are excluded. Publish script can also be rerun after a recent fail, recently successfully published crates will automatically be detected and excluded. To indicate a rerun of the script, set the `OCKAM_PUBLISH_RECENT_FAILURE` environment variable to `true`.
 
 `OCKAM_PUBLISH_RECENT_FAILURE="true"`.
 
@@ -84,7 +84,7 @@ There are two steps to final release
 - Draft release
 - Production release
 
-To create a release, we first create a draft, which will later on be reviewed and pull requests merged before running the script to create a final release.
+To create a release, we first create a draft, which is later reviewed and merged into pull requests before running the script to create the final release.
 
 To start the release in draft mode we call from the ockam home
 
@@ -92,7 +92,7 @@ To start the release in draft mode we call from the ockam home
 IS_DRAFT_RELEASE=true ./tools/scripts/release/release.sh
 ```
 
-On a successful run will,
+On successful execution, the script will,
 - Bump Ockam crates and create a pull request in the /ockam repo
 - Create Github release as draft with built binaries and NIFs
 - Release Ockam docker image
@@ -113,7 +113,7 @@ This will
 - Make Terraform Github release non-draft and latest
 - Push our crates to crates.io
 
-The release script also allows for modifications provided by the `bump` and `publish` scripts, for example to create a release that uses a `RELEASE_VERSION` different from the default (minor)
+The release script also allows for modifications provided by the `bump` and `publish` scripts. For example, to create a release that uses a `RELEASE_VERSION` different from the default (minor):
 
 ```bash
 RELEASE_VERSION=major GITHUB_USERNAME=metaclips release.sh
@@ -135,7 +135,7 @@ SKIP_OCKAM_BUMP=true ./tools/scripts/release/release.sh
 
 The release script can be called from any path.
 
-We also have a script to delete draft release, to delete draft
+We also have a script to delete draft releases. Use the following command to delete a draft release:
 
 ```bash
 TAG_NAME=ockam_v0.71.0 ./delete_draft.sh
