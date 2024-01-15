@@ -10,7 +10,7 @@ confidence-threshold = 0.95
 allow = [
   "Apache-2.0",
   "MIT",
-  "BSD-3-Clause",
+  "BSD-3-Clause OR MIT",
   "BSD-2-Clause",
   "0BSD",
   "ISC",
@@ -18,10 +18,10 @@ allow = [
   "BSL-1.0",
 ]
 exceptions = [
-  { allow = ["LicenseRef-Ring-ISC-OpenSSL"], name = "ring", version = "*" },
+  { allow = ["ISC"], name = "ring", version = "*" },
   { allow = ["Unicode-DFS-2016"], name = "unicode-ident", version = "*" },
-  { allow = ["Apache-2.0 WITH LLVM-exception"], name = "wast", version = "*" },
-  { allow = ["Apache-2.0 WITH LLVM-exception"], name = "wasm-encoder", version = "*" },
+  { allow = ["Apache-2.0 WITH LLVM-exception OR Apache-2.0"], name = "wast", version = "*" },
+  { allow = ["Apache-2.0 WITH LLVM-exception"], name = "wast-encoder", version = "*" },
 
   # used by ockam_app_lib only as a build dependency
   { allow = ["MPL-2.0"], name = "cbindgen", version = "*" },
