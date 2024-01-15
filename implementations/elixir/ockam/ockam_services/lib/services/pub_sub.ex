@@ -30,7 +30,7 @@ defmodule Ockam.Services.PubSub do
   require Logger
 
   @impl true
-  def setup(options, state) do
+  def setup(options, state) do\n  prefix = Keyword.get(options, :prefix, state.address)\n  state = Map.put(state, :prefix, prefix)
     prefix = Keyword.get(options, :prefix, state.address)
     {:ok, Map.put(state, :prefix, prefix)}
   end
