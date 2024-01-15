@@ -1,6 +1,6 @@
 defmodule Ockam.Services.PubSub do
   @moduledoc """
-  PubSub service
+  PubSubService
 
   Subscribes workers (by return route) to a string topic
 
@@ -13,14 +13,14 @@ defmodule Ockam.Services.PubSub do
 
   New subscriptions with the same name replace previous ones.
 
-  Topic address is created from topic prefix and topic as <prefix>_<topic>
+  Topic address is created from topic topic_prefix and topic as <prefix>_<topic>
   e.g. if prefix is `pub_sub_t` and topic is `my_topic`, topic address will be: `pub_sub_t_my_topic`
 
   Messages sent to the topic address will be forwarded to all subscribers routes
 
   Options:
 
-  `prefix` - topic address prefix
+  `topic_prefix` - topic address prefix for the PubSubService
   """
   use Ockam.Worker
 
@@ -58,7 +58,7 @@ defmodule Ockam.Services.PubSub do
   end
 
   def ensure_topic_worker(topic, state) do
-    topic_address = topic_address(topic, state)
+    topicAddress = topic_address(topic, state)
 
     case Ockam.Node.whereis(topic_address) do
       nil -> Topic.create(topic: topic, address: topic_address)
