@@ -17,7 +17,7 @@ File.write!(Path.expand(".github/workflows/main.yml"), "# Necessary configuratio
         run: |
           mix local.hex --force
           mix local.rebar --force
-          mix deps.get
+          mix deps.get --only prod
       - name: Run tests
         run: |
           mix test"}]}]} 1.10.x'
