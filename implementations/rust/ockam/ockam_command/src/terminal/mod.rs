@@ -324,7 +324,7 @@ impl<W: TerminalWriter> Terminal<W> {
 // Logging mode
 impl<W: TerminalWriter> Terminal<W, ToStdErr> {
     pub fn write(&self, msg: impl AsRef<str>) -> Result<()> {
-        if self.quiet {
+        if &self.quiet {
             return Ok(());
         }
         self.stderr.clone().write(msg)
