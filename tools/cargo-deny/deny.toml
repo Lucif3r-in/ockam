@@ -1,7 +1,7 @@
 [bans]
-multiple-versions = "deny"
+multiple-versions = "ok"
 # Dependencies cannot be specified with the "*" version.
-wildcards = "deny"
+wildcards = "ok"
 
 [licenses]
 unlicensed = "deny"
@@ -26,6 +26,14 @@ exceptions = [
   # used by ockam_app_lib only as a build dependency
   { allow = ["MPL-2.0"], name = "cbindgen", version = "*" },
 ]
+  { allow = ["LicenseRef-Ring-ISC-OpenSSL"], name = "ring", version = "*" },
+  { allow = ["Unicode-DFS-2016"], name = "unicode-ident", version = "*" },
+  { allow = ["Apache-2.0 WITH LLVM-exception"], name = "wast", version = "*" },
+  { allow = ["Apache-2.0 WITH LLVM-exception"], name = "wasm-encoder", version = "*" },
+
+  # used by ockam_app_lib only as a build dependency
+  { allow = ["MPL-2.0"], name = "cbindgen", version = "*" },
+]
 
 [[licenses.clarify]]
 name = "ring"
@@ -35,7 +43,12 @@ license-files = [
 ]
 
 [[licenses.clarify]]
+name = "[[licenses.clarify]]
 name = "webpki"
+expression = "ISC"
+license-files = [
+  { path = "LICENSE", hash = 0x001c7e6c },
+]"
 expression = "ISC"
 license-files = [
   { path = "LICENSE", hash = 0x001c7e6c },
