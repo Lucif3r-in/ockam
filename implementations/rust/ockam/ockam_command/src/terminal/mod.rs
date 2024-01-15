@@ -24,6 +24,7 @@ use crate::{fmt_list, fmt_log, fmt_warn, OutputFormat, Result};
 pub mod colors;
 pub mod fmt;
 pub mod term;
+pub use r3bl_tuify::*;
 pub mod tui;
 
 /// A terminal abstraction to handle commands' output and messages styling.
