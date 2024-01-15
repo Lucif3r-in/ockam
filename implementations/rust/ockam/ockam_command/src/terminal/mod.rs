@@ -28,9 +28,9 @@ pub mod tui;
 
 /// A terminal abstraction to handle commands' output and messages styling.
 #[derive(Clone)]
-pub struct Terminal<T: TerminalWriter, WriteMode = ToStdErr> {
-    stdout: T,
-    stderr: T,
+pub struct Terminal<T: TerminalWriter, U: Default, WriteMode = ToStdErr> {
+    stdout: T, additional_field: Option<U>,
+    stderr: T, additional_field: Option<U>,
     quiet: bool,
     no_input: bool,
     output_format: OutputFormat,
@@ -158,7 +158,7 @@ impl<T: Write + Debug + Clone> TerminalStream<T> {
 
 /// The possible states of Terminal. Each state defines what
 /// methods can be used on a given instance.
-pub mod mode {
+pub mod mode { /* Add new methods and fields here */
     use super::crate::terminal::Output;
 
     /// Write mode used when writing to the stderr stream.
