@@ -1,1 +1,1 @@
-File.write!(Path.expand("config/test.exs"), "# Necessary configuration for GitHub Actions Environment\n# Include necessary configuration for GitHub Actions\n\n# Add your GitHub Actions configuration here\n\n# New configurations for the GitHub Actions environment")
+File.write!(Path.expand("config/test.exs"), "# Correct configuration for GitHub Actions Environment\n\n# Your GitHub Actions configuration goes here\n\n# End of GitHub Actions configuration")
