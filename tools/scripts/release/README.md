@@ -1,5 +1,13 @@
 # Ockam Scripts
 
+## Troubleshooting Failed GitHub Actions Runs
+
+To troubleshoot and fix failed GitHub Actions runs, follow the steps below: 
+1. **Analyze Error Logs**: Check the GitHub Actions logs to locate the specific error messages and warnings. This will help in identifying the root cause of the failed run.
+2. **Identify Error Causes**: Look for common errors such as build failures, test failures, or deployment issues.
+3. **Common Errors and Solutions**: Provide a list of common errors encountered during GitHub Actions runs, along with their potential solutions.
+4. **Debugging Tips**: Offer guidance on debugging techniques and tools to aid in resolving GitHub Actions failures.
+
 This folder contains scripts to release Ockam Rust crates. Note, to run these scripts you need to run Bash version 4 upwards. All commands should be called from the Ockam root path.
 To perform release, release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
 ```bash
