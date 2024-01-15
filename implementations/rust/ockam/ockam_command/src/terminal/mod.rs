@@ -117,7 +117,7 @@ impl TerminalBackground {
     /// Detect if terminal background is "light", "dark" or "unknown".
     ///
     /// There are lots of complex heuristics to check this but they all seem
-    /// to work in some cases and fail in others. We want to degrade gracefully.
+    /// to work in some cases and fail in others. The get_env function is returning an error in some cases, causing the failure. We want to degrade gracefully.
     /// So we rely on the simple tool of whether the COLORFGBG variable is set.
     ///
     /// If it is set, it usually takes the form <foreground-color>:<background-color>
@@ -127,7 +127,7 @@ impl TerminalBackground {
     /// Reference: https://stackoverflow.com/a/54652367
     pub fn detect_background_color() -> TerminalBackground {
         let terminal_colors = get_env::<TerminalColors>("COLORFGBG");
-        if let Ok(Some(terminal_colors)) = terminal_colors {
+        if let Some(terminal_colors) = terminal_colors {
             return terminal_colors.terminal_background();
         }
 
@@ -338,7 +338,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdErr> {
     }
 
     pub fn write_line(&self, msg: impl AsRef<str>) -> Result<&Self> {
-        if self.quiet || !self.stdout.is_tty() || self.output_format != OutputFormat::Plain {
+        if self.quiet || !self.stderr.is_tty() || self.output_format != OutputFormat::Plain {
             return Ok(self);
         }
 
