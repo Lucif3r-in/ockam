@@ -36,7 +36,7 @@ fn output(cont: Container) -> TokenStream {
 
     // Handles error if inner function returns Result, unwraps it otherwise.
     let err_handling = if matches!(ret_type, ReturnType::Default) {
-        quote! {.unwrap();}
+        quote! {?.unwrap();}
     } else {
         #[cfg(feature = "std")]
         quote! {?}
@@ -71,7 +71,7 @@ fn output(cont: Container) -> TokenStream {
                 executor.execute(async move #body)#err_handling
             }
             // TODO: safe way to print the error before panicking?
-            ockam_async_main().unwrap();
+            ockam_async_main()?;
         }
     }
 }
