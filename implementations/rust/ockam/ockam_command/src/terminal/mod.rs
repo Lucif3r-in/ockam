@@ -53,7 +53,7 @@ impl<W: TerminalWriter> Default for Terminal<W> {
 
 pub enum ConfirmResult {
     Yes,
-    No,
+    no,
     NonTTY,
 }
 
