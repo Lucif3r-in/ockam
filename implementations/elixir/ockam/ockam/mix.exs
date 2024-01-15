@@ -58,6 +58,10 @@ defmodule Ockam.MixProject do
       {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
+      {:telemetry, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_metrics_prometheus, "~> 1.1.0"},
       {:ockly, path: "../ockly"}
     ]
   end
