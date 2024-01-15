@@ -18,3 +18,11 @@ Errors:
 - 400 - secure channel required
 
 Where `Credential` is a binary with credential received from credential exchange.
+
+// Updated examples from get_started.rs
+let authority_node = NodeManager::authority_node(
+    &tcp,
+    node.secure_channels().clone(),
+    &issuer,
+    // Add any additional parameters here
+);
