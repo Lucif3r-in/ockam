@@ -22,7 +22,7 @@ defmodule Ockam.Metrics.MixProject do
       dialyzer: [flags: [:error_handling]],
 
       # test
-      test_coverage: [output: "_build/cover"],
+      test_coverage: [output: "_build/cover"]
       preferred_cli_env: ["test.cover": :test],
       elixirc_paths: elixirc_paths(Mix.env()),
 
