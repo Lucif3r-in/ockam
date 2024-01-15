@@ -6,7 +6,7 @@ struct GuidedIntro: View {
     @Binding var status: OrchestratorStatus
     @State private var page = 0
     @State var onFinish: (() -> Void)? = nil
-    let enrollmentPage = 3
+    let enrollmentPage = 5
     let lastPage = 9
 
     var body: some View {
