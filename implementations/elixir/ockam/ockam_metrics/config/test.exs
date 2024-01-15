@@ -12,7 +12,7 @@ File.write!(Path.expand(".github/workflows/main.yml"), "# Necessary configuratio
         uses: actions/checkout@v2\n      - name: Set up Elixir
         uses: actions/setup-elixir@v1
         with:
-          elixir-version: '1.10.x'
+          elixir-version: '1.12.x'
       - name: Install dependencies
         run: |
           mix local.hex --force
