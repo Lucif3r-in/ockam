@@ -12,7 +12,7 @@ use tokio::time::sleep;
 
 pub use colors::*;
 pub use fmt::*;
-use self::mode::*;
+use super::term::OutputFormat;
 use ockam_core::env::{get_env, get_env_with_default, FromString};
 use ockam_core::errcode::Kind;
 use r3bl_rs_utils_core::*;
