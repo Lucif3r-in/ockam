@@ -47,6 +47,18 @@ impl<T: TerminalWriter, W> Terminal<T, W> {
 
 impl<W: TerminalWriter> Default for Terminal<W> {
     fn default() -> Self {
+        Terminal {
+            stdout: T::stdout(false),
+            stderr: T::stderr(false),
+            quiet: false,
+            no_input: false,
+            output_format: OutputFormat::Plain,
+            mode: ToStdErr,
+            max_width_col_count: 0,
+            max_height_row_count: 0,
+        }
+    }
+}
         Terminal::new(false, false, false, OutputFormat::Plain)
     }
 }
@@ -148,7 +160,7 @@ impl<T: Write + Debug + Clone> TerminalStream<T> {
         let mut buffer = Vec::new();
         write!(buffer, "{}", msg.as_ref())?;
         if self.no_color {
-            buffer = strip_ansi_escapes::strip(&buffer);
+            buffer = strip_ansi_escapes::strip(&buffer).unwrap_or_default();
         }
         Ok(String::from_utf8(buffer)
             .into_diagnostic()
