@@ -3,6 +3,6 @@
 # Necessary configuration for GitHub Actions Environment
 # Include necessary configuration for GitHub Actions
 
-# Add your GitHub Actions configuration here
+# Update the GitHub Actions configuration here
 
-# New configurations for the GitHub Actions environment
+# # Add GitHub Actions specific configurations here
