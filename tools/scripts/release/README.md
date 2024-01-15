@@ -1,5 +1,21 @@
 # Ockam Scripts
 
+# GitHub Actions Environment
+To run the release scripts in the GitHub Actions environment, follow the steps below:
+
+1. Ensure that the GitHub Actions workflow is configured to run the release scripts on the intended triggers.
+2. Review the workflow file (e.g., ".github/workflows/release.yaml") to understand the environment, dependencies, and conditions under which the release scripts will run.
+3. Check for any specific environment variables or secrets that are required for the release scripts to run successfully in the GitHub Actions environment.
+
+# Troubleshooting GitHub Actions Workflow
+If you encounter issues while running the release scripts in the GitHub Actions environment, consider the following troubleshooting steps:
+
+1. Review the GitHub Actions workflow logs to identify any error messages or failed steps.
+2. Look for any specific environment configuration or dependencies that might be missing in the GitHub Actions environment.
+3. Check for permission issues or access restrictions that might prevent the release scripts from completing successfully.
+4. Verify that any required secrets or environment variables are correctly set up in the GitHub Actions environment.
+5. Consider running the release scripts locally to compare the results and identify any discrepancies between the local environment and the GitHub Actions environment.
+
 This folder contains scripts to release Ockam Rust crates. Note, to run these scripts you need to run Bash version 4 upwards. All commands should be called from the Ockam root path.
 To perform release, release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
 ```bash
