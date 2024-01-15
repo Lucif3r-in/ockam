@@ -28,7 +28,7 @@ pub mod tui;
 
 /// A terminal abstraction to handle commands' output and messages styling.
 #[derive(Clone)]
-pub struct Terminal<T: TerminalWriter, WriteMode = ToStdErr> {
+pub struct Terminal<T: TerminalWriter, WriteMode: WriteModeTrait = ToStdErr> {
     stdout: T,
     stderr: T,
     quiet: bool,
@@ -39,7 +39,7 @@ pub struct Terminal<T: TerminalWriter, WriteMode = ToStdErr> {
     max_height_row_count: usize,
 }
 
-impl<T: TerminalWriter, W> Terminal<T, W> {
+impl<T: TerminalWriter, W: WriteModeTrait> Terminal<T, W> {
     pub fn is_quiet(&self) -> bool {
         self.quiet
     }
@@ -59,8 +59,8 @@ impl<W: TerminalWriter> Default for Terminal<W> {
         }
     }
 }
-        Terminal::new(false, false, false, OutputFormat::Plain)
-    }
+        Terminal::new(false, false, false, OutputFormat::Plain, ToStdErr)
+    
 }
 
 pub enum ConfirmResult {
