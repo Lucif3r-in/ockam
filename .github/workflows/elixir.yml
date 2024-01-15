@@ -35,6 +35,7 @@ on:
       - "tools/nix/**"
     branches:
       - develop
+      - main
   schedule:
     # We only save cache when a cron job is started, this is to ensure
     # that we don't save cache on every push causing excessive caching
@@ -53,7 +54,7 @@ concurrency:
 
 defaults:
   run:
-    shell: nix develop ../../tools/nix#elixir --command bash {0}
+    shell: nix-shell ../../tools/nix/shell.nix --command bash {0}
 
 jobs:
   test:
