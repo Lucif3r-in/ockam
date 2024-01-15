@@ -27,7 +27,7 @@ defmodule Ockam.Services.PubSub do
   alias __MODULE__.Topic
   alias Ockam.Message
 
-  require Logger
+  alias Ockam.Logger
 
   @impl true
   def setup(options, state) do
