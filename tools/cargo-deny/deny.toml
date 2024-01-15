@@ -73,5 +73,7 @@ ignore = [
 # See also:
 # https://doc.rust-lang.org/cargo/reference/config.html#netgit-fetch-with-cli
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#the-git-fetch-with-cli-field-optional
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html#the-git-fetch-with-cli-field-optional
 # https://github.com/EmbarkStudios/cargo-deny/pull/420
+git-fetch-with-cli = true
 git-fetch-with-cli = true
