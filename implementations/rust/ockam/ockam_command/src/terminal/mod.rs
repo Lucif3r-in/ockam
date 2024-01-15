@@ -401,7 +401,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdErr> {
             no_input: self.no_input,
             output_format: self.output_format,
             mode: ToStdOut {
-                output: Output::new(),
+                output_format: OutputFormat::new(),
             },
             max_width_col_count: self.max_width_col_count,
             max_height_row_count: self.max_height_row_count,
