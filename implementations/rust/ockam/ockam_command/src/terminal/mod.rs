@@ -12,7 +12,7 @@ use tokio::time::sleep;
 
 pub use colors::*;
 pub use fmt::*;
-use mode::*;
+use self::mode::*;
 use ockam_core::env::{get_env, get_env_with_default, FromString};
 use ockam_core::errcode::Kind;
 use r3bl_rs_utils_core::*;
@@ -159,7 +159,7 @@ impl<T: Write + Debug + Clone> TerminalStream<T> {
 /// The possible states of Terminal. Each state defines what
 /// methods can be used on a given instance.
 pub mod mode {
-    use super::Output;
+    use super::crate::terminal::Output;
 
     /// Write mode used when writing to the stderr stream.
     #[derive(Clone)]
@@ -196,7 +196,7 @@ pub trait TerminalWriter: Clone {
     fn stderr(no_color: bool) -> Self;
     fn is_tty(&self) -> bool;
 
-    fn write(&mut self, s: impl AsRef<str>) -> Result<()>;
+    fn write(&mut self, s: impl AsRef<str>) -> crate::Result<()>;
     fn rewrite(&mut self, s: impl AsRef<str>) -> Result<()>;
     fn write_line(&self, s: impl AsRef<str>) -> Result<()>;
 }
