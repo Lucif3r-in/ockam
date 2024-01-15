@@ -17,3 +17,7 @@ let authority_node = NodeManager::authority_node(
     &issuer,
     // ...
 );
+    node.secure_channels().clone(),
+    &issuer,
+    // ...
+);
