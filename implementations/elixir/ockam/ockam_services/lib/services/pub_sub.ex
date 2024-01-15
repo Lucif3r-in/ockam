@@ -40,7 +40,7 @@ defmodule Ockam.Services.PubSub do
     payload = Message.payload(message)
 
     with {:ok, name_topic, ""} <- :bare.decode(payload, :string)
-         if name_topic == nil or name == nil or topic == nil do
+         if name_topic == nil or name == nil or topic == nil or String.contains?(name_topic, ":") do
            Logger.error("Invalid message format: #{inspect(payload)}")
          end,
          [name, topic] = String.split(name_topic, ":")
