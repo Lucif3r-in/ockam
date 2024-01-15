@@ -1,7 +1,7 @@
 # Ockam Scripts
 
 This folder contains scripts to release Ockam Rust crates. Note, to run these scripts you need to run Bash version 4 upwards. All commands should be called from the Ockam root path.
-To perform release, release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
+Torm release, release scripts automatically check for updated crates using `recently created git tags`, we can override the default setting if want to track updated crates with a more recent tag. To specify a `git tag`, we can define a variable `GIT_TAG` to any of the scripts. For example to generate changelog using a more recent `git tag` we can call the following command below
 ```bash
 tools/scripts/release/changelog.sh GIT_TAG="a_more_recent_git_tag_v0.0.0"
 ```
@@ -92,7 +92,7 @@ To start the release in draft mode we call from the ockam home
 IS_DRAFT_RELEASE=true ./tools/scripts/release/release.sh
 ```
 
-On a successful run will,
+Upon successful execution,
 - Bump Ockam crates and create a pull request in the /ockam repo
 - Create Github release as draft with built binaries and NIFs
 - Release Ockam docker image
@@ -113,7 +113,7 @@ This will
 - Make Terraform Github release non-draft and latest
 - Push our crates to crates.io
 
-The release script also allows for modifications provided by the `bump` and `publish` scripts, for example to create a release that uses a `RELEASE_VERSION` different from the default (minor)
+Modifications provided by the `bump` and `publish` scripts can be applied using the release script. For example, to create a release with a `RELEASE_VERSION` different from the default (minor), execute the following command:
 
 ```bash
 RELEASE_VERSION=major GITHUB_USERNAME=metaclips release.sh
