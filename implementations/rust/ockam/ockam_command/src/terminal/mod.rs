@@ -457,7 +457,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdOut> {
                     // If not set, fallback with the following priority: JSON -> Plain
                     match (machine, json, plain) {
                         (Some(machine), _, _) => machine,
-                        (None, Some(json), _) => json,
+                        (_, Some(json), _) => json,
                         (None, None, Some(plain)) => plain,
                         _ => unreachable!(),
                     }
