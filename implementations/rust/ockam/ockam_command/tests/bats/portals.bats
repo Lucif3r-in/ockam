@@ -14,6 +14,14 @@ teardown() {
 
 # ===== TESTS
 
+@test "portals - create tcp outlet on implicit default node" {
+  run_success "$OCKAM" node delete --all -y
+
+  outlet_port="$(random_port)"
+  run_success $OCKAM tcp-outlet create --to "127.0.0.1:$outlet_port" --alias "test-outlet"
+  assert_output --partial "/service/outlet"
+}
+
 @test "portals - tcp inlet CRUD" {
   outlet_port="$(random_port)"
   inlet_port="$(random_port)"
@@ -201,4 +209,22 @@ teardown() {
   run_success "$OCKAM" tcp-inlet create --at "$n" --from "127.0.0.1:$port" --to "/node/$n/service/outlet"
 
   run_failure "$OCKAM" tcp-inlet create --at "$n" --from "127.0.0.1:$port" --to "/node/$n/service/outlet"
+}
+
+@test "portals - local inlet and outlet, removing and re-creating the outlet" {
+  port="$(random_port)"
+  node_port="$(random_port)"
+
+  run_success "$OCKAM" node create blue --tcp-listener-address "127.0.0.1:$node_port"
+  run_success "$OCKAM" tcp-outlet create --at /node/blue --to 127.0.0.1:5000
+  run_success "$OCKAM" node create green
+  run_success "$OCKAM" tcp-inlet create --at /node/green --from "127.0.0.1:$port" --to /node/blue/secure/api/service/outlet
+  run_success curl --fail --head --max-time 10 "127.0.0.1:$port"
+
+  run_success "$OCKAM" node delete blue --yes
+  run_failure curl --fail --head --max-time 10 "127.0.0.1:$port"
+
+  run_success "$OCKAM" node create blue --tcp-listener-address "127.0.0.1:$node_port"
+  run_success "$OCKAM" tcp-outlet create --at /node/blue --to 127.0.0.1:5000
+  run_success curl --head --retry-connrefused --retry 2 --max-time 10 "127.0.0.1:$port"
 }

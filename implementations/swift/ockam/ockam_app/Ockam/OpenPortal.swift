@@ -2,53 +2,65 @@ import SwiftUI
 
 struct OpenPortal: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @EnvironmentObject private var appDelegate: AppDelegate
     @FocusState private var isFocused: Bool
 
-    @State var isProcessing = false
-    @State var errorMessage = ""
-    @State var serviceName = ""
-    @State var serviceAddress = "localhost:10000"
+    @Binding var localServices: [LocalService]
+    @State private var isProcessing = false
+    @State private var errorMessage = ""
+    @State private var serviceName = ""
+    @State private var serviceAddress = ""
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Grid(alignment: .leading) {
-                GridRow {
-                    VStack(alignment: .leading) {
-                        Text(verbatim: "Name")
-                        Text(verbatim: "A name for your portal").font(.caption)
-                    }
-                    .padding(.top, 6)
-                    TextField("Portal name", text: $serviceName)
-                        .focused($isFocused)
-                        .onAppear(perform: {
-                            isFocused = true
-                        })
-                }
-                GridRow {
-                    VStack(alignment: .leading) {
-                        Text(verbatim: "Address")
-                        Text(verbatim: "The tcp address where your service is running").font(.caption)
-                    }
-                    .padding(.top, 6)
-                    TextField("Address", text: $serviceAddress)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            Form {
+                TextField("Name:", text: $serviceName)
+                    .focused($isFocused)
+                    .onAppear(perform: {
+                        //give focus to the text field on open
+                        isFocused = true
+                    })
+                Text("This is the name your friends will see, ex: My Web App")
+                    .font(.caption)
+                    .foregroundStyle(OckamSecondaryTextColor)
+                    .padding(.bottom, VerticalSpacingUnit)
+                    .padding(.leading, 4)
+
+                TextField("Address:", text: $serviceAddress)
+                Text("This is the address where your service is listening, ex: 127.0.0.1:3000 or my-nas:5555")
+                    .font(.caption)
+                    .foregroundStyle(OckamSecondaryTextColor)
+                    .padding(.leading, 4)
             }
-            .padding(10)
+            .autocorrectionDisabled()
+            .padding(.top, VerticalSpacingUnit*3)
+            .padding(.bottom, VerticalSpacingUnit*2)
+            .padding(.horizontal, VerticalSpacingUnit*4)
 
-            //use opacity to pre-allocate the space for this component
-            Text("Error: \(errorMessage)")
-                .opacity(errorMessage.isEmpty ? 0 : 1)
-                .foregroundColor(.red)
-                .padding(10)
 
+            Hint(
+"""
+Pick the TCP or HTTP service you want to share with your friends. After you click 'Open Portal', invite your friends to this Portal from the application menu.
+"""
+            )
+            .padding(.leading, HorizontalSpacingUnit*10)
+            .padding(.trailing, HorizontalSpacingUnit*2)
+            .padding(.top, VerticalSpacingUnit)
+
+            Spacer()
             HStack {
+                if !errorMessage.isEmpty {
+                    Text("Error: \(errorMessage)")
+                        .foregroundColor(Color(hex: OckamErrorColor))
+                        .padding(.leading, HorizontalSpacingUnit*3)
+                }
                 Spacer()
                 Button(
                     action: {
                         self.closeWindow()
                     },
                     label: {
-                        Text("Close")
+                        Text("Cancel")
                     })
                 Button(
                     action: {
@@ -64,14 +76,15 @@ struct OpenPortal: View {
                         if error == nil {
                             self.errorMessage = ""
                             self.serviceName = ""
-                            self.serviceAddress = "localhost:10000"
+                            self.serviceAddress = ""
                             self.closeWindow()
+                            appDelegate.showPopover()
                         } else {
                             self.errorMessage = String(cString: error.unsafelyUnwrapped)
                         }
                     },
                     label: {
-                        Text("Create")
+                        Text("Open Portal")
                     }
                 )
                 .disabled(!canCreateService() && !isProcessing)
@@ -80,7 +93,7 @@ struct OpenPortal: View {
             }
             .background(OckamDarkerBackground)
         }
-        .frame(width: 600)
+        .frame(width: 600, height: 320)
     }
 
     func closeWindow() {
@@ -94,6 +107,6 @@ struct OpenPortal: View {
 
 struct CreateServiceView_Previews: PreviewProvider {
     static var previews: some View {
-        OpenPortal()
+        OpenPortal(localServices: .constant([]))
     }
 }

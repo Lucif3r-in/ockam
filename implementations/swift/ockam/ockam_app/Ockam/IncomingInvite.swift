@@ -4,14 +4,19 @@ struct IncomingInvite: View {
     @State private var isHovered = false
     @State private var isOpen = false
     @ObservedObject var invite: Invitation
+    @State var padding = 0.0
 
     var body: some View {
         let pending = !invite.accepting && !invite.ignoring
-        VStack(alignment: .leading) {
-            HStack {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
                 Image(systemName: invite.accepting ? "envelope.open" : "envelope")
+                    .frame(width: 20)
+                    .font(.system(size: 12, weight: .bold))
+                    .padding(.trailing, StandardIconTextSpacing)
+
                 VStack(alignment: .leading) {
-                    Text(verbatim: invite.serviceName).font(.title3).lineLimit(1)
+                    Text(verbatim: "Invitation: " + invite.serviceName).lineLimit(1)
                     if invite.accepting {
                         Text(verbatim: "Accepting")
                             .font(.caption)
@@ -35,9 +40,10 @@ struct IncomingInvite: View {
                         )
                 }
             }
+            .padding(.leading, padding)
             .contentShape(Rectangle())
-            .frame(height: VerticalSpacingUnit*5)
-            .padding(.horizontal, HorizontalSpacingUnit)
+            .frame(height: VerticalSpacingUnit*4)
+            .padding(.horizontal, HorizontalSpacingUnit*2)
             .onTapGesture {
                 withAnimation {
                     if pending {
@@ -48,27 +54,42 @@ struct IncomingInvite: View {
             .onHover { hover in
                 isHovered = hover
             }
-            .background(isHovered ? Color.gray.opacity(0.25) : Color.clear)
+            .background( isHovered ?
+                AnyShapeStyle(HierarchicalShapeStyle.quaternary) :
+                AnyShapeStyle(Color.clear)
+            )
             .cornerRadius(4)
+            .padding(.horizontal, WindowBorderSize)
+            .padding(.vertical, WindowBorderSize)
 
             if isOpen {
+                Divider()
                 VStack(spacing: 0) {
                     if pending {
                         ClickableMenuEntry(
-                            text: "Accept",
+                            text: "Accept the invitation",
                             action: {
                                 accept_invitation(invite.id)
                                 isOpen = false
-                            })
+                            },
+                            textPadding: padding + 35,
+                            compact: false
+                        )
                         ClickableMenuEntry(
-                            text: "Decline",
+                            text: "Decline the invitation",
                             action: {
                                 ignore_invitation(invite.id)
                                 isOpen = false
-                            })
+                            },
+                            textPadding: padding + 35,
+                            compact: false
+                        )
                     }
                 }
-                .padding(.leading, HorizontalSpacingUnit*2)
+                .padding(.horizontal, WindowBorderSize)
+                .padding(.vertical, WindowBorderSize)
+                .background(HierarchicalShapeStyle.quinary)
+                Divider()
             }
         }
     }

@@ -8,43 +8,61 @@ struct RemotePortalView: View {
     @State private var isOpen = false
     @ObservedObject var service: Service
 
+    @State var padding = 0.0
+
     func closeWindow() {
         self.presentationMode.wrappedValue.dismiss()
     }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Image(systemName: "circle")
-                    .foregroundColor(
-                        service.enabled ? (service.available ? .green : .red) : .orange
-                    )
-                    .frame(maxWidth: 16, maxHeight: 16)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                let portalIcon = if #available(macOS 14, *) {
+                    "arrow.up.left.arrow.down.right"
+                } else {
+                    "arrow.up.arrow.down"
+                }
+                Image(systemName: portalIcon)
+                    .frame(width: 20)
+                    .font(.system(size: 12, weight: .bold))
+                    .padding(.trailing, StandardIconTextSpacing)
+                    .opacity((service.enabled && service.available) ? 1.0 : 0.4)
 
-                VStack(alignment: .leading) {
-                    Text(service.sourceName).font(.title3).lineLimit(1)
-                    if !service.enabled {
-                        Text(verbatim: "Disconnected")
-                            .foregroundStyle(OckamSecondaryTextColor)
-                            .font(.caption)
-                    } else {
-                        if service.available {
-                            let address =
-                            if let scheme = service.scheme {
-                                scheme + "://" + service.address.unsafelyUnwrapped + ":"
-                                + String(service.port.unsafelyUnwrapped)
-                            } else {
-                                service.address.unsafelyUnwrapped + ":"
-                                + String(service.port.unsafelyUnwrapped)
-                            }
-                            Text(verbatim: address)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(service.sourceName).lineLimit(1)
+
+                    HStack(spacing: 0) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 7))
+                            .foregroundColor( service.enabled ? (service.available ? .green : Color.init(hex: OckamErrorColor)) : .orange
+                            )
+                            .opacity(0.9)
+                            .padding(.top, 1)
+                            .padding(.trailing, 4)
+
+                        if !service.enabled {
+                            Text(verbatim: "Not connected")
                                 .foregroundStyle(OckamSecondaryTextColor)
                                 .font(.caption)
-                                .lineLimit(1)
                         } else {
-                            Text(verbatim: "Connecting")
-                                .foregroundStyle(OckamSecondaryTextColor)
-                                .font(.caption)
+                            if service.available {
+                                let address =
+                                if let scheme = service.scheme {
+                                    scheme + "://" + service.address.unsafelyUnwrapped + ":"
+                                    + String(service.port.unsafelyUnwrapped)
+                                } else {
+                                    service.address.unsafelyUnwrapped + ":"
+                                    + String(service.port.unsafelyUnwrapped)
+                                }
+                                Text(verbatim: address)
+                                    .foregroundStyle(OckamSecondaryTextColor)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                            } else {
+                                Text(verbatim: "Connecting")
+                                    .foregroundStyle(OckamSecondaryTextColor)
+                                    .font(.caption)
+                            }
                         }
                     }
                 }
@@ -53,8 +71,9 @@ struct RemotePortalView: View {
                     .rotationEffect(
                         isOpen ? Angle.degrees(90.0) : Angle.degrees(0), anchor: .center)
             }
-            .frame(height: VerticalSpacingUnit*5)
-            .padding(.horizontal, HorizontalSpacingUnit)
+            .padding(.leading, padding)
+            .frame(height: VerticalSpacingUnit*4)
+            .padding(.horizontal, HorizontalSpacingUnit*2)
             .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation {
@@ -64,11 +83,49 @@ struct RemotePortalView: View {
             .onHover { hover in
                 isHovered = hover
             }
-            .background(isHovered ? Color.gray.opacity(0.25) : Color.clear)
+            .background( isHovered ?
+                AnyShapeStyle(HierarchicalShapeStyle.quaternary) :
+                AnyShapeStyle(Color.clear)
+            )
             .cornerRadius(4)
+            .padding(.horizontal, WindowBorderSize)
+            .padding(.vertical, WindowBorderSize)
 
             if isOpen {
+                Divider()
                 VStack(spacing: 0) {
+
+                    if service.enabled {
+                        ClickableMenuEntry(
+                            text: "Temporarily disconnect",
+                            action: {
+                                disable_accepted_service(service.id)
+                            },
+                            textPadding: padding + 35,
+                            compact: false
+                        )
+                    } else {
+                        ClickableMenuEntry(
+                            text: "Connect to the portal",
+                            action: {
+                                enable_accepted_service(service.id)
+                            },
+                            textPadding: padding + 35,
+                            compact: false
+                        )
+                    }
+                    ClickableMenuEntry(
+                        text: "Delete the portal inlet",
+                        action: {
+                            OpenWindowWorkaround.shared.openWindow(
+                                windowName: "delete-portal-confirmation",
+                                value: service.id
+                            )
+                        },
+                        textPadding: padding + 35,
+                        compact: false
+                    )
+                    
                     if service.available {
                         if service.enabled {
                             let address =
@@ -79,42 +136,32 @@ struct RemotePortalView: View {
                                 scheme + "://" + service.address.unsafelyUnwrapped + ":"
                                 + String(service.port.unsafelyUnwrapped)
                                 ClickableMenuEntry(
-                                    text: "Open " + url + "…",
+                                    text: "Open address…",
                                     action: {
                                         if let url = URL(string: url) {
                                             NSWorkspace.shared.open(url)
                                         }
-                                    })
+                                    },
+                                    textPadding: padding + 35,
+                                    compact: false
+                                )
                             }
                             ClickableMenuEntry(
-                                text: "Copy " + address, clicked: "Copied!",
+                                text: "Copy localhost address", clicked: "Copied!",
                                 action: {
                                     copyToClipboard(address)
                                     self.closeWindow()
-                                })
+                                },
+                                textPadding: padding + 35,
+                                compact: false
+                            )
                         }
                     }
-
-                    if service.enabled {
-                        ClickableMenuEntry(
-                            text: "Disconnect",
-                            action: {
-                                disable_accepted_service(service.id)
-                            })
-                    } else {
-                        ClickableMenuEntry(
-                            text: "Connect",
-                            action: {
-                                enable_accepted_service(service.id)
-                            })
-                    }
-                    ClickableMenuEntry(
-                        text: "Delete",
-                        action: {
-                            openWindow(id: "delete-portal-confirmation", value: service.id)
-                        })
                 }
-                .padding(.leading, HorizontalSpacingUnit*2)
+                .padding(.horizontal, WindowBorderSize)
+                .padding(.vertical, WindowBorderSize)
+                .background(HierarchicalShapeStyle.quinary)
+                Divider()
             }
         }
     }

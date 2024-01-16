@@ -67,8 +67,7 @@ impl CliState {
                 Origin::Api,
                 Kind::Misuse,
                 format!("Vault {vault_name} is not a KMS vault"),
-            )
-            .into());
+            ))?;
         };
 
         let handle = SigningSecretKeyHandle::ECDSASHA256CurveP256(HandleToSecret::new(
@@ -119,8 +118,7 @@ impl CliState {
                 Origin::Api,
                 Kind::NotFound,
                 format!("no identity found with name {}", name),
-            )
-            .into()),
+            ))?,
         }
     }
 
@@ -155,7 +153,7 @@ impl CliState {
                 .map(|i| i.identifier()),
         };
 
-        result.ok_or_else(|| Self::missing_identifier(name).into())
+        Ok(result.ok_or_else(|| Self::missing_identifier(name))?)
     }
 
     /// Return a full identity from its name
@@ -179,18 +177,19 @@ impl CliState {
         match named_identity {
             Some(identity) => {
                 let change_history = self.get_change_history(&identity.identifier()).await?;
+                let identity_vault = self
+                    .get_named_vault(&identity.vault_name)
+                    .await?
+                    .vault()
+                    .await?;
                 Ok(Identity::import_from_change_history(
                     Some(&identity.identifier()),
                     change_history,
-                    self.get_or_create_default_named_vault()
-                        .await?
-                        .vault()
-                        .await?
-                        .verifying_vault,
+                    identity_vault.verifying_vault,
                 )
                 .await?)
             }
-            None => Err(Self::missing_identifier(name).into()),
+            None => Err(Self::missing_identifier(name))?,
         }
     }
 
@@ -209,8 +208,7 @@ impl CliState {
                 Origin::Api,
                 Kind::NotFound,
                 format!("no identity found for identifier {identifier}"),
-            )
-            .into()),
+            ))?,
         }
     }
 
@@ -260,8 +258,7 @@ impl CliState {
                 Origin::Api,
                 Kind::NotFound,
                 format!("no named identity found for identifier {identifier}"),
-            )
-            .into()),
+            ))?,
         }
     }
 
@@ -319,8 +316,7 @@ impl CliState {
                     "The identity named {name} cannot be deleted because it is used by the node(s): {}",
                     node_names.join(", ")
                 ),
-            )
-                .into())
+            ))?
         }
     }
 }
@@ -364,8 +360,7 @@ impl CliState {
                 Origin::Core,
                 Kind::NotFound,
                 format!("identity not found for identifier {}", identifier),
-            )
-            .into()),
+            ))?,
         }
     }
 
@@ -442,7 +437,7 @@ mod tests {
 
         // create a vault first
         let vault_name = "vault-name";
-        let _ = cli.create_named_vault(vault_name).await?;
+        let _ = cli.get_or_create_named_vault(vault_name).await?;
 
         // then create an identity
         let identity_name = "identity-name";

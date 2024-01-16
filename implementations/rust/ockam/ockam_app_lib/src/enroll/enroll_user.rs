@@ -1,5 +1,6 @@
 use miette::IntoDiagnostic;
-use tracing::{debug, error, info};
+use std::time::{Duration, Instant};
+use tracing::{debug, error, info, warn};
 
 use ockam_api::cli_state;
 use ockam_api::cloud::project::{Project, Projects};
@@ -34,15 +35,6 @@ impl AppState {
                     return Ok(());
                 }
                 EnrollmentOutcome::PendingValidation => {
-                    self.notify(Notification {
-                        kind: Kind::Information,
-                        title: "Email Verification Required".to_string(),
-                        message: "For security reasons, we need to confirm your email address.\
-                     A verification email has been sent to you. \
-                     Please review your inbox and follow the provided steps \
-                     to complete the verification process"
-                            .to_string(),
-                    });
                     self.update_orchestrator_status(OrchestratorStatus::Disconnected);
                     self.publish_state().await;
                     return Ok(());
@@ -51,18 +43,18 @@ impl AppState {
                     // notify and keep going
                     self.notify(Notification {
                         kind: Kind::Information,
-                        title: "Enrolled successfully!".to_string(),
-                        message: "You can now use the Ockam app".to_string(),
+                        title: "Enrolled successfully".to_string(),
+                        message: "You're ready to create your first portal.".to_string(),
                     });
                 }
             },
             Err(err) => {
-                error!(?err, "Failed to enroll user");
+                error!(?err, "Failed to enroll");
                 self.update_orchestrator_status(OrchestratorStatus::Disconnected);
                 self.publish_state().await;
                 self.notify(Notification {
                     kind: Kind::Error,
-                    title: "Failed to enroll user".to_string(),
+                    title: "Failed to enroll".to_string(),
                     message: format!("{}", err),
                 });
                 return Err(err);
@@ -102,11 +94,23 @@ impl AppState {
         let token = oidc_service.get_token_with_pkce().await?;
 
         // retrieve the user information
-        let user_info = oidc_service.get_user_info(&token).await?;
+        let mut user_info = oidc_service.get_user_info(&token).await?;
         info!(?user_info, "User info retrieved successfully");
 
         if !user_info.email_verified {
-            return Ok(EnrollmentOutcome::PendingValidation);
+            self.update_orchestrator_status(OrchestratorStatus::WaitingForEmailValidation);
+            self.publish_state().await;
+
+            // let's wait up to 10 minutes for the email to get validated
+            let timeout_timestamp = Instant::now() + Duration::from_secs(60 * 10);
+            while !user_info.email_verified {
+                if Instant::now() > timeout_timestamp {
+                    warn!("Timeout waiting for email validation");
+                    return Ok(EnrollmentOutcome::PendingValidation);
+                }
+                tokio::time::sleep(Duration::from_secs(10)).await;
+                user_info = oidc_service.get_user_info(&token).await?;
+            }
         }
 
         let cli_state = self.state().await;
@@ -180,8 +184,11 @@ impl AppState {
             None => {
                 self.notify(Notification {
                     kind: Kind::Information,
-                    title: "Creating a new project...".to_string(),
-                    message: "This might take a few minutes".to_string(),
+                    title: "Provisioning a project".to_string(),
+                    message:
+                        "We're provisioning a dedicated project for you in Ockam Orchestrator. \
+                        This can take up to 3 minutes."
+                            .to_string(),
                 });
                 let ctx = &self.context();
                 let project = node_manager

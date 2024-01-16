@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 
 use miette::IntoDiagnostic;
+use ockam_api::cloud::email_address::EmailAddress;
 use tracing::{debug, info, trace, warn};
 
 use ockam_api::cloud::share::{CreateServiceInvitation, InvitationListKind, Invitations};
@@ -50,8 +51,10 @@ impl AppState {
             if changes.new_received_invitation {
                 self.notify(Notification {
                     kind: Kind::Information,
-                    title: "You have pending invitations".to_string(),
-                    message: "".to_string(),
+                    title: "Pending invitations".to_string(),
+                    message:
+                        "You have pending portal inlet invitations, please accept or decline them."
+                            .to_string(),
                 })
             }
         }
@@ -185,7 +188,7 @@ impl AppState {
 
     pub async fn create_service_invitation_by_alias(
         &self,
-        recipient_email: String,
+        recipient_email: EmailAddress,
         alias: &str,
     ) -> Result<(), String> {
         let node_manager = self.node_manager().await;
@@ -207,7 +210,7 @@ impl AppState {
 
     pub async fn create_service_invitation_by_socket_addr(
         &self,
-        recipient_email: String,
+        recipient_email: EmailAddress,
         outlet_socket_addr: String,
     ) -> Result<(), String> {
         info!(

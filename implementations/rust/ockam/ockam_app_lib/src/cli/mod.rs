@@ -8,10 +8,10 @@ pub(crate) fn cli_bin() -> Result<String> {
     match ockam_path {
         Some(path) => Ok(path),
         None => {
-            // check if the `ockam_command` executable was bundled with the application
+            // check if the `ockam` command executable was bundled with the application
             let mut current_executable = std::env::current_exe()?;
             current_executable.pop();
-            current_executable.push("ockam_command");
+            current_executable.push("ockam");
             match current_executable.into_os_string().into_string() {
                 Ok(path) => {
                     if std::path::Path::new(&path).exists() {
@@ -41,13 +41,6 @@ pub(crate) fn add_homebrew_to_path() {
             tracing::debug!("PATH is not set");
         }
     }
-}
-
-/// Set the OCKAM_NO_AUTOMATIC_RESET environment variable to avoid
-/// automatically resetting the node when the application find an incoherent state
-/// this may happen if a command is launched during a write operation
-pub(crate) fn set_no_automatic_reset() {
-    std::env::set_var("OCKAM_NO_AUTOMATIC_RESET", "true");
 }
 
 /// Check that the OCKAM environment variable defines an absolute path

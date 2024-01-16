@@ -28,48 +28,48 @@ impl Output for VaultOutput {
         Ok(formatdoc!(
             r#"
             Vault:
-                Name: {name} {default}
+                Name: {name}
                 Type: {vault_type}
+                Path: {vault_path}
             "#,
             name = self
                 .vault
                 .name()
                 .to_string()
                 .color(OckamColor::PrimaryResource.color()),
-            default = if self.vault.is_default() {
-                "(default)"
-            } else {
-                ""
-            },
             vault_type = match self.vault.is_kms() {
                 true => "AWS KMS",
                 false => "OCKAM",
             }
             .to_string()
             .color(OckamColor::PrimaryResource.color()),
+            vault_path = self
+                .vault
+                .path_as_string()
+                .color(OckamColor::PrimaryResource.color()),
         ))
     }
 
     fn list_output(&self) -> crate::error::Result<String> {
         Ok(formatdoc!(
-            r#"Name: {name} {default}
-            Type: {vault_type}"#,
+            r#"Name: {name}
+            Type: {vault_type}
+            Path: {vault_path}"#,
             name = self
                 .vault
                 .name()
                 .to_string()
                 .color(OckamColor::PrimaryResource.color()),
-            default = if self.vault.is_default() {
-                "(default)"
-            } else {
-                ""
-            },
             vault_type = match self.vault.is_kms() {
                 true => "AWS KMS",
                 false => "OCKAM",
             }
             .to_string()
             .color(OckamColor::PrimaryResource.color()),
+            vault_path = self
+                .vault
+                .path_as_string()
+                .color(OckamColor::PrimaryResource.color()),
         ))
     }
 }

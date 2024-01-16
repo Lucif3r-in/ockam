@@ -1,9 +1,10 @@
+use crate::cloud::email_address::EmailAddress;
 use crate::cloud::share::{
     AcceptInvitation, AcceptedInvitation, CreateInvitation, CreateServiceInvitation,
     InvitationList, InvitationListKind, InvitationWithAccess, ListInvitations, RoleInShare,
     SentInvitation, ShareScope,
 };
-use crate::cloud::Controller;
+use crate::cloud::ControllerClient;
 use miette::IntoDiagnostic;
 use ockam::identity::Identifier;
 use ockam_core::api::Request;
@@ -20,7 +21,7 @@ pub trait Invitations {
         ctx: &Context,
         expires_at: Option<String>,
         grant_role: RoleInShare,
-        recipient_email: String,
+        recipient_email: EmailAddress,
         remaining_uses: Option<usize>,
         scope: ShareScope,
         target_id: String,
@@ -32,7 +33,7 @@ pub trait Invitations {
         ctx: &Context,
         expires_at: Option<String>,
         project_id: String,
-        recipient_email: String,
+        recipient_email: EmailAddress,
         project_identity: Identifier,
         project_route: String,
         project_authority_identity: Identifier,
@@ -64,13 +65,13 @@ pub trait Invitations {
 }
 
 #[async_trait]
-impl Invitations for Controller {
+impl Invitations for ControllerClient {
     async fn create_invitation(
         &self,
         ctx: &Context,
         expires_at: Option<String>,
         grant_role: RoleInShare,
-        recipient_email: String,
+        recipient_email: EmailAddress,
         remaining_uses: Option<usize>,
         scope: ShareScope,
         target_id: String,
@@ -98,7 +99,7 @@ impl Invitations for Controller {
         ctx: &Context,
         expires_at: Option<String>,
         project_id: String,
-        recipient_email: String,
+        recipient_email: EmailAddress,
         project_identity: Identifier,
         project_route: String,
         project_authority_identity: Identifier,

@@ -4,6 +4,7 @@ use std::io::Write;
 use std::time::Duration;
 
 use colorful::Colorful;
+use console::Term;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::Context as _;
 use miette::{miette, IntoDiagnostic};
@@ -19,7 +20,7 @@ use r3bl_rs_utils_core::*;
 use r3bl_tuify::*;
 
 use crate::error::Error;
-use crate::{fmt_list, fmt_log, fmt_warn, OutputFormat, Result};
+use crate::{fmt_list, fmt_log, fmt_warn, GlobalArgs, OutputFormat, Result};
 
 pub mod colors;
 pub mod fmt;
@@ -45,9 +46,14 @@ impl<T: TerminalWriter, W> Terminal<T, W> {
     }
 }
 
-impl<W: TerminalWriter> Default for Terminal<W> {
-    fn default() -> Self {
-        Terminal::new(false, false, false, OutputFormat::Plain)
+impl From<&GlobalArgs> for Terminal<TerminalStream<Term>> {
+    fn from(global_args: &GlobalArgs) -> Self {
+        Terminal::new(
+            global_args.quiet,
+            global_args.no_color,
+            global_args.no_input,
+            global_args.output_format.clone(),
+        )
     }
 }
 
@@ -257,7 +263,7 @@ impl<W: TerminalWriter> Terminal<W> {
             match self.confirm(prompt_msg)? {
                 ConfirmResult::Yes => Ok(true),
                 ConfirmResult::No => Ok(false),
-                ConfirmResult::NonTTY => Err(miette!("Use --yes to confirm").into()),
+                ConfirmResult::NonTTY => Err(miette!("Use --yes to confirm"))?,
             }
         }
     }
@@ -438,7 +444,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdOut> {
             && self.mode.output.machine.is_none()
             && self.mode.output.json.is_none()
         {
-            return Err(miette!("At least one output format must be defined").into());
+            return Err(miette!("At least one output format must be defined"))?;
         }
 
         let plain = self.mode.output.plain.as_ref().ok_or(miette!("Plain output is not defined for this command"))?;

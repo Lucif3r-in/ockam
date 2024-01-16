@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use crate::cloud::enroll::enrollment_token::{
     AuthenticateEnrollmentToken, EnrollmentToken, RequestEnrollmentToken,
 };
-use crate::cloud::Controller;
+use crate::cloud::ControllerClient;
 
 use ockam::identity::Attributes;
 use ockam_core::api::Request;
@@ -43,7 +43,7 @@ trait Enroll {
 }
 
 #[async_trait]
-impl Enroll for Controller {
+impl Enroll for ControllerClient {
     async fn generate_enrollment_token(
         &self,
         ctx: &Context,
@@ -79,6 +79,7 @@ impl Enroll for Controller {
 
 pub mod auth0 {
     use super::*;
+    use crate::cloud::email_address::EmailAddress;
 
     // Req/Res types
 
@@ -117,14 +118,13 @@ pub mod auth0 {
     }
 
     #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Eq, PartialEq)]
-    #[cfg_attr(test, derive(Default))]
     pub struct UserInfo {
         pub sub: String,
         pub nickname: String,
         pub name: String,
         pub picture: String,
         pub updated_at: String,
-        pub email: String,
+        pub email: EmailAddress,
         pub email_verified: bool,
     }
 
