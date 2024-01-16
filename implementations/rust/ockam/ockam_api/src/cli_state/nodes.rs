@@ -2,12 +2,14 @@ use std::path::PathBuf;
 use std::process;
 
 use nix::errno::Errno;
-use sysinfo::{Pid, ProcessExt, ProcessStatus, System, SystemExt};
+use serde::Serialize;
+use sysinfo::{Pid, ProcessStatus, System};
 
 use ockam::identity::Identifier;
 use ockam_core::errcode::{Kind, Origin};
 use ockam_core::Error;
 use ockam_multiaddr::MultiAddr;
+use ockam_transport_tcp::TcpListener;
 
 use crate::cli_state::{random_name, Result};
 use crate::cli_state::{CliState, CliStateError};
@@ -18,6 +20,31 @@ use crate::NamedVault;
 /// The methods below support the creation and update of local nodes
 ///
 impl CliState {
+    /// Create a node, with some optional associated values, and start it
+    pub async fn start_node_with_optional_values(
+        &self,
+        node_name: &str,
+        identity_name: &Option<String>,
+        project_name: &Option<String>,
+        tcp_listener: Option<&TcpListener>,
+    ) -> Result<NodeInfo> {
+        let mut node = self
+            .create_node_with_optional_values(node_name, identity_name, project_name)
+            .await?;
+        let pid = process::id();
+        self.set_node_pid(node_name, pid).await?;
+        node = node.set_pid(pid);
+
+        if let Some(tcp_listener) = tcp_listener {
+            let address = (*tcp_listener.socket_address()).into();
+            self.set_tcp_listener_address(&node.name(), &address)
+                .await?;
+            node = node.set_tcp_listener_address(address)
+        }
+
+        Ok(node)
+    }
+
     /// Create a node, with some optional associated values:
     ///
     ///  - an identity name. That identity is used by the `NodeManager` to create secure channels
@@ -28,13 +55,6 @@ impl CliState {
         identity_name: &Option<String>,
         project_name: &Option<String>,
     ) -> Result<NodeInfo> {
-        // Return the node if it has already been created
-        // and update its process id
-        if let Ok(node) = self.get_node(node_name).await {
-            self.set_node_pid(node_name, process::id()).await?;
-            return Ok(node);
-        };
-
         let identity = match identity_name {
             Some(name) => self.get_named_identity(name).await?,
             None => self.get_or_create_default_named_identity().await?,
@@ -175,11 +195,15 @@ impl CliState {
     }
 
     /// Set a TCP listener address on a node when the TCP listener has been started
-    pub async fn set_tcp_listener_address(&self, node_name: &str, address: String) -> Result<()> {
+    pub async fn set_tcp_listener_address(
+        &self,
+        node_name: &str,
+        address: &InternetAddress,
+    ) -> Result<()> {
         Ok(self
             .nodes_repository()
             .await?
-            .set_tcp_listener_address(node_name, address.as_str())
+            .set_tcp_listener_address(node_name, address)
             .await?)
     }
 
@@ -216,8 +240,7 @@ impl CliState {
                 Origin::Api,
                 Kind::NotFound,
                 format!("There is no node with name {node_name}"),
-            )
-            .into())
+            ))?
         }
     }
 
@@ -228,11 +251,16 @@ impl CliState {
 
     /// Return information about the default node (if there is one)
     pub async fn get_default_node(&self) -> Result<NodeInfo> {
-        self.nodes_repository()
+        Ok(self
+            .nodes_repository()
             .await?
             .get_default_node()
             .await?
-            .ok_or(Error::new(Origin::Api, Kind::NotFound, "There is no default node").into())
+            .ok_or(Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                "There is no default node",
+            ))?)
     }
 
     /// Return the node information for the given node name, otherwise for the default node
@@ -256,19 +284,29 @@ impl CliState {
                 Origin::Api,
                 Kind::NotFound,
                 format!("there is no project associated to node {node_name}"),
-            )
-            .into()),
+            ))?,
         }
     }
 
     /// Return the stdout log file used by a node
     pub fn stdout_logs(&self, node_name: &str) -> Result<PathBuf> {
-        Ok(self.create_node_dir(node_name)?.join("stdout.log"))
-    }
-
-    /// Return the stderr log file used by a node
-    pub fn stderr_logs(&self, node_name: &str) -> Result<PathBuf> {
-        Ok(self.create_node_dir(node_name)?.join("stderr.log"))
+        let node_dir = self.create_node_dir(node_name)?;
+        let current_log_file = std::fs::read_dir(node_dir)?
+            .flatten()
+            .filter(|entry| {
+                if let (Some(name), Ok(metadata)) = (entry.file_name().to_str(), entry.metadata()) {
+                    name.contains("stdout") && metadata.is_file()
+                } else {
+                    false
+                }
+            })
+            .max_by_key(|file| file.metadata().unwrap().modified().unwrap())
+            .ok_or(Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("there is no log file for the node {node_name}"),
+            ))?;
+        Ok(current_log_file.path())
     }
 }
 
@@ -325,9 +363,17 @@ impl CliState {
     }
 
     /// Return the directory used by a node
-    fn node_dir(&self, node_name: &str) -> PathBuf {
+    pub fn node_dir(&self, node_name: &str) -> PathBuf {
         Self::make_node_dir_path(&self.dir(), node_name)
     }
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq, Clone)]
+#[serde(rename_all = "lowercase", tag = "status", content = "pid")]
+pub enum NodeProcessStatus {
+    Running(u32),
+    Zombie(u32),
+    Stopped,
 }
 
 /// This struct contains all the data associated to a node
@@ -420,8 +466,19 @@ impl NodeInfo {
         result
     }
 
+    pub fn set_tcp_listener_address(&self, address: InternetAddress) -> NodeInfo {
+        let mut result = self.clone();
+        result.tcp_listener_address = Some(address);
+        result
+    }
+
     /// Return true if there is a running process corresponding to the node process id
     pub fn is_running(&self) -> bool {
+        matches!(self.status(), NodeProcessStatus::Running(_))
+    }
+
+    /// Return the status of the node process corresponding to the node process id
+    pub fn status(&self) -> NodeProcessStatus {
         if let Some(pid) = self.pid() {
             let mut sys = System::new();
             sys.refresh_processes();
@@ -429,21 +486,25 @@ impl NodeInfo {
                 // Under certain circumstances the process can be in a state where it's not running
                 // and we are unable to kill it. For example, `kill -9` a process created by
                 // `node create` in a Docker environment will result in a zombie process.
-                !matches!(p.status(), ProcessStatus::Dead | ProcessStatus::Zombie)
+                if matches!(p.status(), ProcessStatus::Dead | ProcessStatus::Zombie) {
+                    NodeProcessStatus::Zombie(pid)
+                } else {
+                    NodeProcessStatus::Running(pid)
+                }
             } else {
-                false
+                NodeProcessStatus::Stopped
             }
         } else {
-            false
+            NodeProcessStatus::Stopped
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use ockam_core::env::FromString;
-
     use crate::config::lookup::InternetAddress;
+    use std::net::SocketAddr;
+    use std::str::FromStr;
 
     use super::*;
 
@@ -481,8 +542,11 @@ mod tests {
         // create a node
         let node_name = "node-1";
         let _ = cli.create_node(node_name).await?;
-        cli.set_tcp_listener_address(node_name, "127.0.0.1:0".to_string())
-            .await?;
+        cli.set_tcp_listener_address(
+            node_name,
+            &SocketAddr::from_str("127.0.0.1:0").unwrap().into(),
+        )
+        .await?;
 
         // recreate the node with the same name
         let _ = cli.create_node(node_name).await?;
@@ -556,17 +620,24 @@ mod tests {
         assert_eq!(result.identifier(), identity.identifier());
 
         // a node can be created with a name, an existing identity and an existing project
-        let authority = cli.get_identity(&identity.identifier()).await?;
-        let project = cli
-            .import_project(
-                "project_id",
-                "project_name",
-                &None,
-                &MultiAddr::from_string("/project/default").unwrap(),
-                &Some(authority),
-                &Some(MultiAddr::from_string("/project/authority").unwrap()),
-            )
-            .await?;
+        let project = Project {
+            id: "project_id".to_string(),
+            name: "project_name".to_string(),
+            space_name: "1".to_string(),
+            access_route: "".to_string(),
+            users: vec![],
+            space_id: "1".to_string(),
+            identity: None,
+            authority_access_route: None,
+            authority_identity: None,
+            okta_config: None,
+            confluent_config: None,
+            version: None,
+            running: None,
+            operation_id: None,
+            user_roles: vec![],
+        };
+        cli.store_project(project.clone()).await?;
 
         let node = cli
             .create_node_with_optional_values(

@@ -5,10 +5,11 @@ use miette::{miette, IntoDiagnostic, WrapErr};
 use ockam::identity::Identifier;
 use ockam::Context;
 use ockam_api::nodes::models::secure_channel::CreateSecureChannelListenerRequest;
-use ockam_api::nodes::{BackgroundNode, NODEMANAGER_ADDR};
+use ockam_api::nodes::{BackgroundNodeClient, NODEMANAGER_ADDR};
 use ockam_core::api::{Request, Status};
 use ockam_core::{Address, Route};
 
+use crate::node::util::initialize_default_node;
 use crate::node::NodeOpts;
 use crate::util::{api, exitcode, node_rpc};
 use crate::{docs, fmt_log, fmt_ok, terminal::OckamColor, CommandGlobalOpts};
@@ -34,11 +35,8 @@ pub struct CreateCommand {
     #[arg(short, long, value_name = "IDENTIFIERS")]
     authorized: Option<Vec<Identifier>>,
 
-    /// Name of the Vault that the secure-channel listener will use
-    #[arg(value_name = "VAULT_NAME", long, requires = "identity")]
-    vault: Option<String>,
-
     /// Name of the Identity that the secure-channel listener will use
+    /// If it is different from the default node identity
     #[arg(value_name = "IDENTITY_NAME", long)]
     identity: Option<String>,
 }
@@ -57,14 +55,10 @@ async fn run_impl(
     ctx: &Context,
     (opts, cmd): (CommandGlobalOpts, CreateCommand),
 ) -> miette::Result<()> {
-    let node = BackgroundNode::create(ctx, &opts.state, &cmd.node_opts.at_node).await?;
+    initialize_default_node(ctx, &opts).await?;
+    let node = BackgroundNodeClient::create(ctx, &opts.state, &cmd.node_opts.at_node).await?;
     let req = Request::post("/node/secure_channel_listener").body(
-        CreateSecureChannelListenerRequest::new(
-            &cmd.address,
-            cmd.authorized,
-            cmd.vault,
-            cmd.identity,
-        ),
+        CreateSecureChannelListenerRequest::new(&cmd.address, cmd.authorized, cmd.identity),
     );
     let result = node.tell(ctx, req).await;
     match result {
@@ -79,7 +73,8 @@ async fn run_impl(
                             .to_string()
                             .color(OckamColor::PrimaryResource.color())
                     ) + &fmt_log!(
-                        "At node /node/{}",
+                        "At node {}{}",
+                        "/node/".color(OckamColor::PrimaryResource.color()),
                         node.node_name().color(OckamColor::PrimaryResource.color())
                     ),
                 )

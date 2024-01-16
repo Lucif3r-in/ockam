@@ -6,6 +6,7 @@ use tracing::warn;
 
 use ockam::identity::Identifier;
 use ockam_api::cli_state::enrollments::EnrollmentTicket;
+use ockam_api::cloud::email_address::EmailAddress;
 use ockam_api::cloud::share::InvitationWithAccess;
 
 use crate::state::{AppState, ModelState};
@@ -169,7 +170,7 @@ pub struct IncomingService {
     // it's assumed the id is also the accepted invitation id
     id: String,
     // the email of the inviter
-    email: String,
+    email: EmailAddress,
     // user-defined name, by default it's the same as the original name
     name: String,
     // this field contains the current port number
@@ -199,7 +200,7 @@ impl IncomingService {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: String,
-        email: String,
+        email: EmailAddress,
         name: String,
         port: Option<Port>,
         enabled: bool,
@@ -229,7 +230,7 @@ impl IncomingService {
     }
 
     /// This is the email of the inviter
-    pub fn email(&self) -> &str {
+    pub fn email(&self) -> &EmailAddress {
         &self.email
     }
 
@@ -301,11 +302,12 @@ impl IncomingService {
     }
 
     /// Returns the full route to the outlet service
-    pub fn service_route(&self) -> String {
-        let project_id = &self.project_id;
+    pub fn service_route(&self, project_name: Option<&str>) -> String {
+        // when dealing with accepted invitations, the project name is the project id
+        let project_name = project_name.unwrap_or(&self.project_id);
         let relay_name = self.relay_name();
         let service_name = &self.original_name;
-        format!("/project/{project_id}/service/{relay_name}/secure/api/service/{service_name}")
+        format!("/project/{project_name}/service/{relay_name}/secure/api/service/{service_name}")
     }
 
     /// The name of the node that hosts the inlet
@@ -343,7 +345,7 @@ mod tests {
                 id: "invitation_id".to_string(),
                 expires_at: "2020-09-12T15:07:14.00".to_string(),
                 grant_role: RoleInShare::Admin,
-                owner_email: "owner_email".to_string(),
+                owner_email: "owner@email".try_into().unwrap(),
                 scope: ShareScope::Project,
                 target_id: "target_id".to_string(),
                 ignored: false,
@@ -432,7 +434,8 @@ mod tests {
             "forward_to_I12ab34cd56ef12ab34cd56ef12ab34cd56ef12aba1b2c3d4e5f6a6b5c4d3e2f1",
             service.relay_name()
         );
-        assert_eq!("/project/project_id/service/forward_to_I12ab34cd56ef12ab34cd56ef12ab34cd56ef12aba1b2c3d4e5f6a6b5c4d3e2f1/secure/api/service/remote_service_name", service.service_route());
+        assert_eq!("/project/project_id/service/forward_to_I12ab34cd56ef12ab34cd56ef12ab34cd56ef12aba1b2c3d4e5f6a6b5c4d3e2f1/secure/api/service/remote_service_name", service.service_route(None));
+        assert_eq!("/project/custom-project-name/service/forward_to_I12ab34cd56ef12ab34cd56ef12ab34cd56ef12aba1b2c3d4e5f6a6b5c4d3e2f1/secure/api/service/remote_service_name", service.service_route(Some("custom-project-name")));
         assert_eq!(
             "ockam_app_project_id_invitation_id",
             service.local_node_name()
@@ -443,7 +446,7 @@ mod tests {
                 id: "second_invitation_id".to_string(),
                 expires_at: "2020-09-12T15:07:14.00".to_string(),
                 grant_role: RoleInShare::Admin,
-                owner_email: "owner_email".to_string(),
+                owner_email: "owner@email".try_into().unwrap(),
                 scope: ShareScope::Project,
                 target_id: "target_id".to_string(),
                 ignored: false,
@@ -473,7 +476,7 @@ mod tests {
         assert_eq!("second_invitation_id", service.id());
         assert!(!service.enabled());
         assert_eq!("custom_user_name", service.name());
-        assert_eq!("/project/project_id/service/forward_to_I12ab34cd56ef12ab34cd56ef12ab34cd56ef12aba1b2c3d4e5f6a6b5c4d3e2f1/secure/api/service/remote_service_name", service.service_route());
+        assert_eq!("/project/project_id/service/forward_to_I12ab34cd56ef12ab34cd56ef12ab34cd56ef12aba1b2c3d4e5f6a6b5c4d3e2f1/secure/api/service/remote_service_name", service.service_route(None));
 
         context.stop().await
     }

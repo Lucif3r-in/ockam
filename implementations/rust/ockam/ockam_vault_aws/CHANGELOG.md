@@ -4,6 +4,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.27.0 - 2024-01-09
+
+### Added
+
+- Use `From` for converting errors
+- Updated dependencies
+
+## 0.26.0 - 2024-01-04
+
+### Added
+
+- Updated dependencies
+
+## 0.25.0 - 2023-12-26
+
+### Changed
+
+- Updated dependencies
+
+## 0.24.0 - 2023-12-19
+
+### Changed
+
+- Updated dependencies
+
+## 0.23.0 - 2023-12-18
+
+### Changed
+
+- Updated dependencies
+
+## 0.22.0 - 2023-12-16
+
+### Changed
+
+- Bump aws-sdk-kms from 0.33.0 to 0.39.0
+- Updated dependencies
+
+### Fixed
+
+- Use asyncsleep trait to configure  aws-sdk-kms
+
+## 0.21.0 - 2023-12-15
+
+### Changed
+
+- Updated dependencies
+
+## 0.20.0 - 2023-12-12
+
+### Changed
+
+- Updated dependencies
+
+## 0.19.0 - 2023-12-11
+
+### Changed
+
+- Updated dependencies
+
 ## 0.18.0 - 2023-12-06
 
 ### Changed

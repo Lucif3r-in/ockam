@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use tokio::try_join;
 
 use ockam_api::nodes::models::transport::{TransportList, TransportStatus};
-use ockam_api::nodes::BackgroundNode;
+use ockam_api::nodes::BackgroundNodeClient;
 use ockam_core::api::Request;
 use ockam_node::Context;
 
@@ -39,7 +39,7 @@ async fn run_impl(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, ListCommand),
 ) -> miette::Result<()> {
-    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.node_opts.at_node).await?;
+    let node = BackgroundNodeClient::create(&ctx, &opts.state, &cmd.node_opts.at_node).await?;
     let is_finished: Mutex<bool> = Mutex::new(false);
 
     let get_transports = async {
@@ -88,14 +88,7 @@ impl Output for TransportStatus {
         )?;
         writeln!(
             output,
-            "Worker {}",
-            self.worker_addr
-                .to_string()
-                .color(OckamColor::PrimaryResource.color())
-        )?;
-        writeln!(
-            output,
-            "Processor {}",
+            "Internal Address {}",
             self.processor_address
                 .to_string()
                 .color(OckamColor::PrimaryResource.color())
@@ -103,7 +96,7 @@ impl Output for TransportStatus {
 
         write!(
             output,
-            "{}",
+            "Socket Address {}",
             self.socket_addr
                 .to_string()
                 .color(OckamColor::PrimaryResource.color())

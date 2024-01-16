@@ -65,17 +65,28 @@ teardown() {
   run_success "$OCKAM" authority create --tcp-listener-address="127.0.0.1:$port" --project-identifier 1 --trusted-identities "$trusted" --no-direct-authentication --no-token-enrollment
   sleep 1 # wait for authority to start TCP listener
 
-  PROJECT_NAME="default"
-  run_success bash -c "$OCKAM project import \
-    --project-name $PROJECT_NAME \
-    --project-id 1 \
-    --project-identifier I6c20e814b56579306f55c64e8747e6c1b4a53d9aa1b2c3d4e5f6a6b5c4d3e2f1 \
-    --project-access-route /dnsaddr/127.0.0.1/tcp/4000/service/api \
-    --authority-identity $authority_identity_full \
-    --authority-access-route /dnsaddr/127.0.0.1/tcp/$port/service/api"
+  cat <<EOF >>"$OCKAM_HOME/project.json"
+{
+  "id": "1",
+  "name": "default",
+  "space_name": "together-porgy",
+  "access_route": "/dnsaddr/127.0.0.1/tcp/4000/service/api",
+  "users": [],
+  "space_id": "1",
+  "identity": "I6c20e814b56579306f55c64e8747e6c1b4a53d9aa1b2c3d4e5f6a6b5c4d3e2f1",
+  "authority_access_route": "/dnsaddr/127.0.0.1/tcp/$port/service/api",
+  "authority_identity": "$authority_identity_full",
+  "version": "605c4632ded93eb17edeeef31fa3860db225b3ab-2023-12-05",
+  "running": false,
+  "operation_id": null,
+  "user_roles": []
+}
+EOF
+
+  run_success bash -c "$OCKAM project import --project-file $OCKAM_HOME/project.json"
 
   # m1 is a member (its on the set of pre-trusted identifiers) so it can get it's own credential
-  run_success "$OCKAM" project enroll --project "$PROJECT_NAME" --identity m1
+  run_success "$OCKAM" project enroll --identity m1
   assert_output --partial "sample_val"
 
   echo "$trusted" >"$OCKAM_HOME/trusted-anchors.json"
@@ -84,16 +95,16 @@ teardown() {
   run_success "$OCKAM" authority create --tcp-listener-address=127.0.0.1:$port --project-identifier 1 --reload-from-trusted-identities-file "$OCKAM_HOME/trusted-anchors.json"
   sleep 1 # wait for authority to start TCP listener
 
-  run_success "$OCKAM" project ticket --identity enroller --project "$PROJECT_NAME" --member $m2_identifier --attribute sample_attr=m2_member
+  run_success "$OCKAM" project ticket --identity enroller --member $m2_identifier --attribute sample_attr=m2_member
 
-  run_success "$OCKAM" project enroll --force --project "$PROJECT_NAME" --identity m2
+  run_success "$OCKAM" project enroll --force --identity m2
   assert_output --partial "m2_member"
 
-  token1=$($OCKAM project ticket --identity enroller --project "$PROJECT_NAME" --attribute sample_attr=m3_member)
+  token1=$($OCKAM project ticket --identity enroller --attribute sample_attr=m3_member)
   run_success "$OCKAM" project enroll --force $token1 --identity m3
   assert_output --partial "m3_member"
 
-  token2=$($OCKAM project ticket --identity enroller --project "$PROJECT_NAME" --usage-count 2 --attribute sample_attr=members_group)
+  token2=$($OCKAM project ticket --identity enroller --usage-count 2 --attribute sample_attr=members_group)
   run_success "$OCKAM" project enroll --force $token2 --identity m4
   assert_output --partial "members_group"
 
@@ -120,23 +131,34 @@ teardown() {
   run_success "$OCKAM" authority create --tcp-listener-address="127.0.0.1:$port" --project-identifier 1 --trusted-identities "$trusted"
   sleep 1 # wait for authority to start TCP listener
 
-  PROJECT_NAME="default"
-  run_success bash -c "$OCKAM project import \
-    --project-name $PROJECT_NAME \
-    --project-id 1 \
-    --project-identifier I6c20e814b56579306f55c64e8747e6c1b4a53d9aa1b2c3d4e5f6a6b5c4d3e2f1 \
-    --project-access-route /dnsaddr/127.0.0.1/tcp/4000/service/api \
-    --authority-identity $authority_identity_full \
-    --authority-access-route /dnsaddr/127.0.0.1/tcp/$port/service/api"
+  cat <<EOF >>"$OCKAM_HOME/project.json"
+{
+  "id": "1",
+  "name": "default",
+  "space_name": "together-porgy",
+  "access_route": "/dnsaddr/127.0.0.1/tcp/4000/service/api",
+  "users": [],
+  "space_id": "1",
+  "identity": "I6c20e814b56579306f55c64e8747e6c1b4a53d9aa1b2c3d4e5f6a6b5c4d3e2f1",
+  "authority_access_route": "/dnsaddr/127.0.0.1/tcp/$port/service/api",
+  "authority_identity": "$authority_identity_full",
+  "version": "605c4632ded93eb17edeeef31fa3860db225b3ab-2023-12-05",
+  "running": false,
+  "operation_id": null,
+  "user_roles": []
+}
+EOF
+
+  run_success bash -c "$OCKAM project import --project-file $OCKAM_HOME/project.json"
 
   # Enrollment ticket expired by the time it's used
-  token=$($OCKAM project ticket --identity enroller --project "$PROJECT_NAME" --attribute sample_attr=m3_member --expires-in 1s)
+  token=$($OCKAM project ticket --identity enroller --attribute sample_attr=m3_member --expires-in 1s)
   sleep 2
   run "$OCKAM" project enroll $token --identity m3
   assert_failure
 
   # Enrollment ticket with enough ttl
-  token=$($OCKAM project ticket --identity enroller --project "$PROJECT_NAME" --attribute sample_attr=m3_member --expires-in 30s)
+  token=$($OCKAM project ticket --identity enroller --attribute sample_attr=m3_member --expires-in 30s)
   run_success "$OCKAM" project enroll $token --identity m3
   assert_output --partial "m3_member"
 }

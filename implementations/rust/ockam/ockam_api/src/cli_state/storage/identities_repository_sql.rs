@@ -4,7 +4,6 @@ use sqlx::*;
 
 use ockam::identity::Identifier;
 use ockam_core::async_trait;
-use ockam_core::compat::sync::Arc;
 use ockam_core::Result;
 use ockam_node::database::{FromSqlxError, SqlxDatabase, ToSqlxType, ToVoid};
 
@@ -14,21 +13,19 @@ use crate::cli_state::{IdentitiesRepository, NamedIdentity};
 /// using sqlx as its API, and Sqlite as its driver
 #[derive(Clone)]
 pub struct IdentitiesSqlxDatabase {
-    database: Arc<SqlxDatabase>,
+    database: SqlxDatabase,
 }
 
 impl IdentitiesSqlxDatabase {
     /// Create a new database
-    pub fn new(database: Arc<SqlxDatabase>) -> Self {
+    pub fn new(database: SqlxDatabase) -> Self {
         debug!("create a repository for identities");
         Self { database }
     }
 
     /// Create a new in-memory database
-    pub async fn create() -> Result<Arc<Self>> {
-        Ok(Arc::new(Self::new(
-            SqlxDatabase::in_memory("identities").await?,
-        )))
+    pub async fn create() -> Result<Self> {
+        Ok(Self::new(SqlxDatabase::in_memory("identities").await?))
     }
 }
 
@@ -70,7 +67,10 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
         let mut transaction = self.database.begin().await.into_core()?;
 
         // get the named identity
-        let query1 = query_as("SELECT * FROM named_identity WHERE name=$1").bind(name.to_sql());
+        let query1 = query_as(
+            "SELECT identifier, name, vault_name, is_default FROM named_identity WHERE name=$1",
+        )
+        .bind(name.to_sql());
         let row: Option<NamedIdentityRow> =
             query1.fetch_optional(&mut *transaction).await.into_core()?;
         let named_identity = row.map(|r| r.named_identity()).transpose()?;
@@ -119,9 +119,12 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
     }
 
     async fn get_identifier(&self, name: &str) -> Result<Option<Identifier>> {
-        let query = query_as("SELECT * FROM named_identity WHERE name=$1").bind(name.to_sql());
+        let query = query_as(
+            "SELECT identifier, name, vault_name, is_default FROM named_identity WHERE name=$1",
+        )
+        .bind(name.to_sql());
         let row: Option<NamedIdentityRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         row.map(|r| r.identifier()).transpose()
@@ -132,18 +135,21 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
         identifier: &Identifier,
     ) -> Result<Option<String>> {
         let query =
-            query_as("SELECT * FROM named_identity WHERE identifier=$1").bind(identifier.to_sql());
+            query_as("SELECT identifier, name, vault_name, is_default FROM named_identity WHERE identifier=$1").bind(identifier.to_sql());
         let row: Option<NamedIdentityRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         Ok(row.map(|r| r.name()))
     }
 
     async fn get_named_identity(&self, name: &str) -> Result<Option<NamedIdentity>> {
-        let query = query_as("SELECT * FROM named_identity WHERE name=$1").bind(name.to_sql());
+        let query = query_as(
+            "SELECT identifier, name, vault_name, is_default FROM named_identity WHERE name=$1",
+        )
+        .bind(name.to_sql());
         let row: Option<NamedIdentityRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         row.map(|r| r.named_identity()).transpose()
@@ -154,17 +160,26 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
         identifier: &Identifier,
     ) -> Result<Option<NamedIdentity>> {
         let query =
-            query_as("SELECT * FROM named_identity WHERE identifier=$1").bind(identifier.to_sql());
+            query_as("SELECT identifier, name, vault_name, is_default FROM named_identity WHERE identifier=$1").bind(identifier.to_sql());
         let row: Option<NamedIdentityRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         row.map(|r| r.named_identity()).transpose()
     }
 
     async fn get_named_identities(&self) -> Result<Vec<NamedIdentity>> {
-        let query = query_as("SELECT * FROM named_identity");
-        let row: Vec<NamedIdentityRow> = query.fetch_all(&self.database.pool).await.into_core()?;
+        let query = query_as("SELECT identifier, name, vault_name, is_default FROM named_identity");
+        let row: Vec<NamedIdentityRow> = query.fetch_all(&*self.database.pool).await.into_core()?;
+        row.iter().map(|r| r.named_identity()).collect()
+    }
+
+    async fn get_named_identities_by_vault_name(
+        &self,
+        vault_name: &str,
+    ) -> Result<Vec<NamedIdentity>> {
+        let query = query_as("SELECT identifier, name, vault_name, is_default FROM named_identity WHERE vault_name=?").bind(vault_name.to_sql());
+        let row: Vec<NamedIdentityRow> = query.fetch_all(&*self.database.pool).await.into_core()?;
         row.iter().map(|r| r.named_identity()).collect()
     }
 
@@ -202,9 +217,9 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
 
     async fn get_default_named_identity(&self) -> Result<Option<NamedIdentity>> {
         let query =
-            query_as("SELECT * FROM named_identity WHERE is_default=$1").bind(true.to_sql());
+            query_as("SELECT identifier, name, vault_name, is_default FROM named_identity WHERE is_default=$1").bind(true.to_sql());
         let row: Option<NamedIdentityRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         row.map(|r| r.named_identity()).transpose()
@@ -246,6 +261,7 @@ impl NamedIdentityRow {
 #[cfg(test)]
 mod tests {
     use ockam::identity::identities;
+    use ockam_core::compat::sync::Arc;
 
     use super::*;
 
@@ -327,9 +343,38 @@ mod tests {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn test_get_identities_by_vault_name() -> Result<()> {
+        let repository = create_repository().await?;
+
+        // A name can be associated to an identity
+        let identifier1 = create_identity().await?;
+        repository
+            .store_named_identity(&identifier1, "name1", "vault1")
+            .await?;
+
+        let identifier2 = create_identity().await?;
+        repository
+            .store_named_identity(&identifier2, "name2", "vault2")
+            .await?;
+
+        let identifier3 = create_identity().await?;
+        repository
+            .store_named_identity(&identifier3, "name3", "vault1")
+            .await?;
+
+        let result = repository
+            .get_named_identities_by_vault_name("vault1")
+            .await?;
+        let names: Vec<String> = result.iter().map(|i| i.name()).collect();
+        assert_eq!(names, vec!["name1", "name3"]);
+
+        Ok(())
+    }
+
     /// HELPERS
     async fn create_repository() -> Result<Arc<dyn IdentitiesRepository>> {
-        Ok(IdentitiesSqlxDatabase::create().await?)
+        Ok(Arc::new(IdentitiesSqlxDatabase::create().await?))
     }
 
     async fn create_identity() -> Result<Identifier> {

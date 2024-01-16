@@ -2,6 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use crate::address::extract_address_value;
 use crate::cli_state::EnrollmentTicket;
+use crate::cloud::email_address::EmailAddress;
 use crate::error::ApiError;
 use minicbor::{Decode, Encode};
 use ockam::identity::Identifier;
@@ -96,7 +97,7 @@ pub struct ReceivedInvitation {
     #[n(1)] pub id: String,
     #[n(2)] pub expires_at: String,
     #[n(3)] pub grant_role: RoleInShare,
-    #[n(4)] pub owner_email: String,
+    #[n(4)] pub owner_email: EmailAddress,
     #[n(5)] pub scope: ShareScope,
     #[n(6)] pub target_id: String,
     #[n(7)] pub ignored: bool,
@@ -116,10 +117,12 @@ pub struct SentInvitation {
     #[n(2)] pub expires_at: String,
     #[n(3)] pub grant_role: RoleInShare,
     #[n(4)] pub owner_id: usize,
-    #[n(5)] pub recipient_email: String,
+    #[n(5)] pub recipient_email: EmailAddress,
     #[n(6)] pub remaining_uses: usize,
     #[n(7)] pub scope: ShareScope,
     #[n(8)] pub target_id: String,
+    #[n(9)] pub recipient_id: usize,
+    #[n(10)] pub access_details: Option<ServiceAccessDetails>,
 }
 
 impl SentInvitation {
@@ -142,7 +145,7 @@ fn is_expired(date: &str) -> ockam_core::Result<bool> {
     Ok(date < now)
 }
 
-#[derive(Clone, Debug, Decode, Encode, Deserialize, Serialize)]
+#[derive(Clone, Debug, Decode, Encode, Deserialize, Serialize, PartialEq)]
 #[cbor(map)]
 #[rustfmt::skip]
 pub struct ServiceAccessDetails {

@@ -1,3 +1,4 @@
+use core::sync::atomic::{AtomicBool, Ordering};
 use ockam_core::compat::sync::Arc;
 use ockam_core::compat::vec::Vec;
 use ockam_core::{Any, Result, Routed, TransportMessage};
@@ -28,9 +29,11 @@ pub(crate) struct DecryptorHandler {
 
     identities: Arc<Identities>,
     trust_context: Option<TrustContext>,
+    should_send_close: Arc<AtomicBool>,
 }
 
 impl DecryptorHandler {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         identities: Arc<Identities>,
         trust_context: Option<TrustContext>,
@@ -39,6 +42,7 @@ impl DecryptorHandler {
         key: AeadSecretKeyHandle,
         vault: Arc<dyn VaultForSecureChannels>,
         their_identity_id: Identifier,
+        should_send_close: Arc<AtomicBool>,
     ) -> Self {
         Self {
             role,
@@ -47,6 +51,7 @@ impl DecryptorHandler {
             decryptor: Decryptor::new(key, vault),
             identities,
             trust_context,
+            should_send_close,
         }
     }
 
@@ -116,6 +121,8 @@ impl DecryptorHandler {
     }
 
     async fn handle_close(&mut self, ctx: &mut Context) -> Result<()> {
+        // Prevent sending another Close message
+        self.should_send_close.store(false, Ordering::Relaxed);
         // Should be enough to stop the encryptor, since it will stop the decryptor
         ctx.stop_worker(self.addresses.encryptor.clone()).await
     }
@@ -211,7 +218,7 @@ impl Decryptor {
 
     pub async fn decrypt(&mut self, payload: &[u8]) -> Result<Vec<u8>> {
         if payload.len() < 8 {
-            return Err(IdentityError::InvalidNonce.into());
+            return Err(IdentityError::InvalidNonce)?;
         }
 
         let (nonce, nonce_buffer) = Self::convert_nonce_from_small(&payload[..8])?;
