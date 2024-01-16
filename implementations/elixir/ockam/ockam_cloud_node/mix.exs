@@ -1,7 +1,7 @@
 defmodule Ockam.CloudNode.MixProject do
   use Mix.Project
 
-  @version "0.10.1"
+  @version "0.1.0"
 
   @elixir_requirement "~> 1.10"
 
