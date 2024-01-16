@@ -3,7 +3,7 @@ import SwiftUI
 
 
 struct GuidedIntro: View {
-    @Binding var status: OrchestratorStatus
+    @Binding var status: Binding<OrchestratorStatus> 
     @State private var page = 0
     @State var onFinish: (() -> Void)? = nil
     let enrollmentPage = 3
@@ -104,7 +104,7 @@ This service can then be shared with your friends so that they can access it, wi
                             .padding(.top, VerticalSpacingUnit)
                             .frame(height: 200)
 
-                    case 5:
+                    case 4:
                         Text("How to create a service")
                             .font(.title)
                             .padding(.vertical, VerticalSpacingUnit*2)
@@ -138,7 +138,7 @@ In order to do this, click on the Ockam icon in the menu bar, and then click on 
                             .padding(.top, VerticalSpacingUnit)
                             .frame(height: 200)
 
-                    case 7:
+                    case 6:
                         Text("How to share a service")
                             .font(.title)
                             .padding(.vertical, VerticalSpacingUnit*2)
@@ -170,7 +170,7 @@ Once you click on “Share”, an email will be sent to them by Ockam. And they 
 Once a friend has shared a service (on their computer) with you, you will get an email invitation letting you know that this has happened. At this point, you can either interact with the invitation via the email or directly in the Ockam.app itself.
 
 If you want to handle the invitation via the app, here are the steps
-Once the app is installed, and you have enrolled successfully, the invitations waiting for you will be shown in the app.
+Once the app is installed, and you have enrolled successfully, the invitations waiting for you will be shown in the app. 
 """
                         )
 
@@ -298,12 +298,12 @@ You can click on an invitation to open it. And then you can click on Accept to s
             }
             .padding(.vertical, VerticalSpacingUnit)
             .padding(.horizontal, HorizontalSpacingUnit*2)
-            .background(.background)
+            .background(Color.background)
         }
         .padding(.vertical, VerticalSpacingUnit*3)
         .padding(.horizontal, HorizontalSpacingUnit*3)
-        .background(OckamDarkerBackground)
-        .frame(width: 500)
+        .background(Color.ockamDarkerBackground)
+        .frame(width: 500, height: 500)
     }
 
 }
