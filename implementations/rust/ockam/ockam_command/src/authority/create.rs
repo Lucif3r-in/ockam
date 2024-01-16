@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use std::process;
 
 use clap::ArgGroup;
 use clap::Args;
@@ -95,10 +94,6 @@ pub struct CreateCommand {
     #[arg(long, short, value_name = "BOOL", default_value_t = false)]
     foreground: bool,
 
-    /// Vault that authority will use
-    #[arg(long = "vault", value_name = "VAULT_NAME")]
-    vault: Option<String>,
-
     /// Name of the Identity that the authority will use
     #[arg(long = "identity", value_name = "IDENTITY_NAME")]
     identity: Option<String>,
@@ -181,18 +176,13 @@ async fn spawn_background_node(
         });
     }
 
-    if let Some(vault) = &cmd.vault {
-        args.push("--vault".to_string());
-        args.push(vault.clone());
-    }
-
     if let Some(identity) = &cmd.identity {
         args.push("--identity".to_string());
         args.push(identity.clone());
     }
     args.push(cmd.node_name.to_string());
 
-    run_ockam(opts, &cmd.node_name, args, cmd.logging_to_file()).await
+    run_ockam(args).await
 }
 
 impl CreateCommand {
@@ -273,13 +263,9 @@ async fn start_authority_node(
 
     let node = opts
         .state
-        .create_node_with_optional_values(&cmd.node_name, &Some(identity_name), &None)
-        .await?;
-    opts.state
-        .set_tcp_listener_address(&node.name(), cmd.tcp_listener_address.to_string())
+        .start_node_with_optional_values(&cmd.node_name, &Some(identity_name), &None, None)
         .await?;
     opts.state.set_as_authority_node(&node.name()).await?;
-    opts.state.set_node_pid(&node.name(), process::id()).await?;
 
     let okta_configuration = match (&cmd.tenant_base_url, &cmd.certificate, &cmd.attributes) {
         (Some(tenant_base_url), Some(certificate), Some(attributes)) => Some(OktaConfiguration {

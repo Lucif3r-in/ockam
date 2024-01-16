@@ -8,12 +8,14 @@ _: {
   }: {
     devShells.tooling = pkgs.mkShell {
       packages = with pkgs; [
+        broot
         config.packages.bats
         commitlint
         curl
         git
         graphviz
         jq
+        parallel
         which
       ];
 
@@ -29,7 +31,7 @@ _: {
       name = "shfmt-all";
       runtimeInputs = with pkgs; [findutils gitMinimal shfmt];
       text = ''
-        git ls-files ':!:./demos/**' '*\.sh' '*\.bash' '*\.bats' | xargs shfmt --diff
+        git ls-files ':!:./examples/command/**' '*\.sh' '*\.bash' '*\.bats' | xargs shfmt --diff
       '';
     };
   };

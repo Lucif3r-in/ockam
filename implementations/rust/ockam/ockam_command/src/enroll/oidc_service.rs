@@ -111,7 +111,7 @@ impl OidcServiceExt for OidcService {
                         ))?;
                 }
                 Err(_e) => {
-                    return Err(miette!("couldn't read enter from stdin").into());
+                    return Err(miette!("couldn't read enter from stdin"))?;
                 }
             }
         }
@@ -153,7 +153,7 @@ impl OidcServiceExt for OidcService {
                         user_info.email
                     ))
                 }
-                sleep(Duration::from_secs(5)).await;
+                sleep(Duration::from_secs(10)).await;
             }
         }
     }
@@ -224,7 +224,7 @@ impl OidcServiceExt for OidcService {
                         _ => {
                             let err_msg = "failed to receive tokens";
                             debug!(?err, "{err_msg}");
-                            return Err(miette!(err_msg).into());
+                            return Err(miette!(err_msg))?;
                         }
                     }
                 }

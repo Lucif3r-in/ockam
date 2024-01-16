@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use std::sync::Arc;
 
 use sqlx::sqlite::SqliteRow;
 use sqlx::*;
@@ -9,9 +8,10 @@ use ockam_core::async_trait;
 use ockam_core::env::FromString;
 use ockam_core::errcode::{Kind, Origin};
 use ockam_core::{Error, Result};
-use ockam_node::database::{FromSqlxError, SqlxDatabase, ToSqlxType, ToVoid};
+use ockam_node::database::{FromSqlxError, SqlxDatabase, SqlxType, ToSqlxType, ToVoid};
 
 use crate::cloud::addon::ConfluentConfig;
+use crate::cloud::email_address::EmailAddress;
 use crate::cloud::project::{OktaConfig, Project, ProjectUserRole};
 use crate::cloud::share::{RoleInShare, ShareScope};
 use crate::minicbor_url::Url;
@@ -28,21 +28,19 @@ use super::ProjectsRepository;
 ///
 #[derive(Clone)]
 pub struct ProjectsSqlxDatabase {
-    database: Arc<SqlxDatabase>,
+    database: SqlxDatabase,
 }
 
 impl ProjectsSqlxDatabase {
     /// Create a new database
-    pub fn new(database: Arc<SqlxDatabase>) -> Self {
+    pub fn new(database: SqlxDatabase) -> Self {
         debug!("create a repository for projects");
         Self { database }
     }
 
     /// Create a new in-memory database
-    pub async fn create() -> Result<Arc<Self>> {
-        Ok(Arc::new(Self::new(
-            SqlxDatabase::in_memory("projects").await?,
-        )))
+    pub async fn create() -> Result<Self> {
+        Ok(Self::new(SqlxDatabase::in_memory("projects").await?))
     }
 }
 
@@ -103,6 +101,13 @@ impl ProjectsRepository for ProjectsSqlxDatabase {
             query.execute(&mut *transaction).await.void()?;
         }
 
+        // make sure that the project space is also saved
+        let query5 = query("INSERT OR IGNORE INTO space VALUES ($1, $2, $3)")
+            .bind(project.space_id.to_sql())
+            .bind(project.space_name.to_sql())
+            .bind(true.to_sql());
+        query5.execute(&mut *transaction).await.void()?;
+
         // store the okta configuration if any
         for okta_config in &project.okta_config {
             let query = query("INSERT OR REPLACE INTO okta_config VALUES (?, ?, ?, ?, ?)")
@@ -129,7 +134,7 @@ impl ProjectsRepository for ProjectsSqlxDatabase {
         let query =
             query("SELECT project_name FROM project WHERE project_id=$1").bind(project_id.to_sql());
         let row: Option<SqliteRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         match row {
@@ -144,20 +149,22 @@ impl ProjectsRepository for ProjectsSqlxDatabase {
     async fn get_project_by_name(&self, name: &str) -> Result<Option<Project>> {
         let mut transaction = self.database.begin().await.into_core()?;
 
-        let query = query_as("SELECT * FROM project WHERE project_name=$1").bind(name.to_sql());
+        let query = query_as("SELECT project_id, project_name, is_default, space_id, space_name, identifier, access_route, authority_identity, authority_access_route, version, running, operation_id FROM project WHERE project_name=$1").bind(name.to_sql());
         let row: Option<ProjectRow> = query.fetch_optional(&mut *transaction).await.into_core()?;
         let project = match row.map(|r| r.project()).transpose()? {
             Some(mut project) => {
                 // get the project users emails
-                let query2 = query_as("SELECT * FROM user_project WHERE project_id=$1")
-                    .bind(project.id.to_sql());
+                let query2 =
+                    query_as("SELECT project_id, user_email FROM user_project WHERE project_id=$1")
+                        .bind(project.id.to_sql());
                 let rows: Vec<UserProjectRow> =
                     query2.fetch_all(&mut *transaction).await.into_core()?;
-                let users = rows.into_iter().map(|r| r.user_email).collect();
-                project.users = users;
+                let users: Result<Vec<EmailAddress>> =
+                    rows.into_iter().map(|r| r.user_email()).collect();
+                project.users = users?;
 
                 // get the project users roles
-                let query3 = query_as("SELECT * FROM user_role WHERE project_id=$1")
+                let query3 = query_as("SELECT user_id, project_id, user_email, role, scope FROM user_role WHERE project_id=$1")
                     .bind(project.id.to_sql());
                 let rows: Vec<UserRoleRow> =
                     query3.fetch_all(&mut *transaction).await.into_core()?;
@@ -168,15 +175,17 @@ impl ProjectsRepository for ProjectsSqlxDatabase {
                 project.user_roles = user_roles;
 
                 // get the project okta configuration
-                let query4 = query_as("SELECT * FROM okta_config WHERE project_id=$1")
+                let query4 = query_as("SELECT project_id, tenant_base_url, client_id, certificate, attributes FROM okta_config WHERE project_id=$1")
                     .bind(project.id.to_sql());
                 let row: Option<OktaConfigRow> =
                     query4.fetch_optional(&mut *transaction).await.into_core()?;
                 project.okta_config = row.map(|r| r.okta_config()).transpose()?;
 
                 // get the project confluent configuration
-                let query5 = query_as("SELECT * FROM confluent_config WHERE project_id=$1")
-                    .bind(project.id.to_sql());
+                let query5 = query_as(
+                    "SELECT project_id, bootstrap_server FROM confluent_config WHERE project_id=$1",
+                )
+                .bind(project.id.to_sql());
                 let row: Option<ConfluentConfigRow> =
                     query5.fetch_optional(&mut *transaction).await.into_core()?;
                 project.confluent_config = row.map(|r| r.confluent_config());
@@ -192,7 +201,7 @@ impl ProjectsRepository for ProjectsSqlxDatabase {
 
     async fn get_projects(&self) -> Result<Vec<Project>> {
         let query = query("SELECT project_name FROM project");
-        let rows: Vec<SqliteRow> = query.fetch_all(&self.database.pool).await.into_core()?;
+        let rows: Vec<SqliteRow> = query.fetch_all(&*self.database.pool).await.into_core()?;
         let project_names: Vec<String> = rows.iter().map(|r| r.get(0)).collect();
         let mut projects = vec![];
         for project_name in project_names {
@@ -208,7 +217,7 @@ impl ProjectsRepository for ProjectsSqlxDatabase {
         let query =
             query("SELECT project_name FROM project WHERE is_default=$1").bind(true.to_sql());
         let row: Option<SqliteRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         match row {
@@ -287,7 +296,7 @@ impl ProjectRow {
 
     pub(crate) fn complete_project(
         &self,
-        user_emails: Vec<String>,
+        user_emails: Vec<EmailAddress>,
         user_roles: Vec<ProjectUserRole>,
         okta_config: Option<OktaConfig>,
         confluent_config: Option<ConfluentConfig>,
@@ -325,6 +334,12 @@ struct UserProjectRow {
     user_email: String,
 }
 
+impl UserProjectRow {
+    fn user_email(&self) -> Result<EmailAddress> {
+        self.user_email.clone().try_into()
+    }
+}
+
 /// Low-level representation of a row in the user_role table
 #[derive(sqlx::FromRow)]
 struct UserRoleRow {
@@ -336,6 +351,12 @@ struct UserRoleRow {
     scope: String,
 }
 
+impl ToSqlxType for EmailAddress {
+    fn to_sql(&self) -> SqlxType {
+        self.to_string().to_sql()
+    }
+}
+
 impl UserRoleRow {
     fn project_user_role(&self) -> Result<ProjectUserRole> {
         let role = RoleInShare::from_str(&self.role)
@@ -344,7 +365,7 @@ impl UserRoleRow {
             .map_err(|e| Error::new(Origin::Api, Kind::Serialization, e.to_string()))?;
         Ok(ProjectUserRole {
             id: self.user_id as u64,
-            email: self.user_email.clone(),
+            email: self.user_email.clone().try_into()?,
             role,
             scope,
         })
@@ -394,6 +415,9 @@ impl ConfluentConfigRow {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::{SpacesRepository, SpacesSqlxDatabase};
+
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_repository() -> Result<()> {
@@ -438,7 +462,7 @@ mod test {
         assert_eq!(result, Some(project2.clone()));
 
         // updating a project which was already the default should keep it the default
-        project2.users = vec!["someone@ockam.io".into()];
+        project2.users = vec!["someone@ockam.io".try_into().unwrap()];
         repository.store_project(&project2).await?;
         let result = repository.get_default_project().await?;
         assert_eq!(result, Some(project2.clone()));
@@ -453,9 +477,25 @@ mod test {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn test_store_project_space() -> Result<()> {
+        let db = SqlxDatabase::in_memory("projects").await?;
+        let projects_repository = ProjectsSqlxDatabase::new(db.clone());
+        let project = create_project("1", "name1", vec![], vec![]);
+        projects_repository.store_project(&project).await?;
+
+        // the space information coming from the project must also be stored in the spaces table
+        let spaces_repository: Arc<dyn SpacesRepository> = Arc::new(SpacesSqlxDatabase::new(db));
+        let space = spaces_repository.get_default_space().await?.unwrap();
+        assert_eq!(project.space_id, space.id);
+        assert_eq!(project.space_name, space.name);
+
+        Ok(())
+    }
+
     /// HELPERS
     async fn create_repository() -> Result<Arc<dyn ProjectsRepository>> {
-        Ok(ProjectsSqlxDatabase::create().await?)
+        Ok(Arc::new(ProjectsSqlxDatabase::create().await?))
     }
 
     fn create_project(
@@ -470,7 +510,10 @@ mod test {
             space_id: "space-id".into(),
             space_name: "space-name".into(),
             access_route: "route".into(),
-            users: user_emails.iter().map(|u| u.to_string()).collect(),
+            users: user_emails
+                .iter()
+                .map(|u| u.to_string().try_into().unwrap())
+                .collect(),
             identity: Some(
                 Identifier::from_str(
                     "I124ed0b2e5a2be82e267ead6b3279f683616b66da1b2c3d4e5f6a6b5c4d3e2f1",
@@ -490,7 +533,7 @@ mod test {
 
     fn create_project_user_role(user_id: u64, role: RoleInShare) -> ProjectUserRole {
         ProjectUserRole {
-            email: "user_email".into(),
+            email: "user@email".try_into().unwrap(),
             id: user_id,
             role,
             scope: ShareScope::Project,

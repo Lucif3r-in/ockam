@@ -3,30 +3,52 @@ import SwiftUI
 // Reproduction of the menu entry since it's not possible
 // to inherit a button with the style in macOS 13
 struct ClickableMenuEntry: View {
-    @State private var isHovered = false
-
     @State var text: String
     @State var clicked: String = ""
     @State var icon: String = ""
     @State var shortcut: String = ""
     @State var action: (() -> Void)? = nil
-    @State var isDown = false
+    @State var textPadding = 0.0
+    @State var compact = true
+
+    @State private var isHovered = false
+    @State private var isDown = false
 
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             if icon != "" {
                 Image(systemName: icon)
+                    .frame(width: 20)
+                    .font(.system(size: 12, weight: .bold))
+                    .padding(.trailing, StandardIconTextSpacing)
+
+                Text(
+                    verbatim: isDown ? (
+                        clicked.isEmpty ? text : clicked
+                    ) : text
+                )
+            } else {
+                Text(
+                    verbatim: isDown ? (
+                        clicked.isEmpty ? text : clicked
+                    ) : text
+                )
+                .padding(.leading, textPadding)
             }
-            Text(verbatim: isDown ? (clicked.isEmpty ? text : clicked) : text)
+
+
             Spacer()
+
             if shortcut != "" {
                 Text(shortcut)
-                    .foregroundColor(Color.gray.opacity(0.5))
+                    .foregroundColor(Color.gray.opacity(0.6))
             }
         }
         .padding(.horizontal, HorizontalSpacingUnit)
-        .frame(height: VerticalSpacingUnit*3)
-        .background(isHovered ? Color.gray.opacity(0.25) : Color.clear)
+        .frame(height: compact ? VerticalSpacingUnit*3.5 : VerticalSpacingUnit*4)
+        .background(
+            isHovered ? Color.gray.opacity(0.25) : Color.clear
+        )
         .buttonStyle(PlainButtonStyle())
         .cornerRadius(4)
         .contentShape(Rectangle())
@@ -48,6 +70,8 @@ struct ClickableMenuEntry: View {
         .onHover { hover in
             isHovered = hover
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
 }
 

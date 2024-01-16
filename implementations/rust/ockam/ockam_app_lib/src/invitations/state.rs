@@ -38,6 +38,7 @@ impl InvitationState {
             .unwrap_or_default()
             .into_iter()
             .filter(|i| !i.ignored)
+            .filter(|i| !i.is_expired().unwrap_or(true))
             .collect::<Vec<_>>();
         if self.received.invitations != new_received {
             status.new_received_invitation = new_received
@@ -100,26 +101,28 @@ mod tests {
                 expires_at: "expires_at".to_string(),
                 grant_role: RoleInShare::Admin,
                 owner_id: 0,
-                recipient_email: "".to_string(),
+                recipient_email: "no_email@none".try_into().unwrap(),
                 remaining_uses: 0,
                 scope: ShareScope::Project,
                 target_id: "target_id".to_string(),
+                recipient_id: 0,
+                access_details: None,
             }]),
             received: Some(vec![
                 ReceivedInvitation {
                     id: "id1".to_string(),
-                    expires_at: "expires_at".to_string(),
+                    expires_at: "2100-09-12T15:07:14.00".to_string(),
                     grant_role: RoleInShare::Admin,
-                    owner_email: "owner_email".to_string(),
+                    owner_email: "owner@email".try_into().unwrap(),
                     scope: ShareScope::Project,
                     target_id: "target_id".to_string(),
                     ignored: false,
                 },
                 ReceivedInvitation {
                     id: "id2".to_string(),
-                    expires_at: "expires_at".to_string(),
+                    expires_at: "2100-09-12T15:07:14.00".to_string(),
                     grant_role: RoleInShare::Admin,
-                    owner_email: "owner_email".to_string(),
+                    owner_email: "owner@email".try_into().unwrap(),
                     scope: ShareScope::Project,
                     target_id: "target_id".to_string(),
                     ignored: true,
@@ -131,7 +134,7 @@ mod tests {
                         id: "id1".to_string(),
                         expires_at: "expires_at".to_string(),
                         grant_role: RoleInShare::Admin,
-                        owner_email: "owner_email".to_string(),
+                        owner_email: "owner@email".try_into().unwrap(),
                         scope: ShareScope::Project,
                         target_id: "target_id".to_string(),
                         ignored: false,
@@ -143,7 +146,7 @@ mod tests {
                         id: "id2".to_string(),
                         expires_at: "expires_at".to_string(),
                         grant_role: RoleInShare::Admin,
-                        owner_email: "owner_email".to_string(),
+                        owner_email: "owner@email".try_into().unwrap(),
                         scope: ShareScope::Project,
                         target_id: "target_id".to_string(),
                         ignored: true,

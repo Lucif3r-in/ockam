@@ -6,7 +6,7 @@ use tokio::try_join;
 use ockam::Context;
 use ockam_api::address::extract_address_value;
 use ockam_api::nodes::models::workers::{WorkerList, WorkerStatus};
-use ockam_api::nodes::BackgroundNode;
+use ockam_api::nodes::BackgroundNodeClient;
 
 use crate::output::Output;
 use crate::terminal::OckamColor;
@@ -26,7 +26,7 @@ after_long_help = docs::after_help(AFTER_LONG_HELP)
 )]
 pub struct ListCommand {
     /// Node at which to lookup workers
-    #[arg(value_name = "NODE", long, display_order = 800, value_parser = extract_address_value)]
+    #[arg(value_name = "NODE_NAME", long, display_order = 800, value_parser = extract_address_value)]
     at: Option<String>,
 }
 
@@ -40,7 +40,7 @@ async fn run_impl(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, ListCommand),
 ) -> miette::Result<()> {
-    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.at).await?;
+    let node = BackgroundNodeClient::create(&ctx, &opts.state, &cmd.at).await?;
     let is_finished: Mutex<bool> = Mutex::new(false);
 
     let get_workers = async {

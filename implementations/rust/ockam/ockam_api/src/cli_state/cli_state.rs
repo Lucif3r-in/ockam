@@ -4,7 +4,6 @@ use rand::random;
 
 use cli_state::error::Result;
 use ockam::SqlxDatabase;
-use ockam_core::compat::sync::Arc;
 use ockam_core::env::get_env_with_default;
 use ockam_node::Executor;
 
@@ -27,7 +26,7 @@ use crate::cli_state::CliStateError;
 #[derive(Debug, Clone)]
 pub struct CliState {
     dir: PathBuf,
-    database: Arc<SqlxDatabase>,
+    database: SqlxDatabase,
 }
 
 impl CliState {
@@ -40,8 +39,16 @@ impl CliState {
         self.dir.clone()
     }
 
+    pub fn database(&self) -> SqlxDatabase {
+        self.database.clone()
+    }
+
     pub fn database_path(&self) -> PathBuf {
         Self::make_database_path(&self.dir)
+    }
+
+    pub fn set_node_name(&mut self, node_name: String) {
+        self.database.node_name = Some(node_name)
     }
 }
 
@@ -54,6 +61,7 @@ impl CliState {
 
     /// Stop nodes and remove all the directories storing state
     pub async fn reset(&self) -> Result<()> {
+        self.delete_all_named_identities().await?;
         self.delete_all_nodes(true).await?;
         self.delete_all_named_vaults().await?;
         self.delete()
@@ -72,7 +80,7 @@ impl CliState {
 
     /// Backup and reset is used to save aside
     /// some corrupted local state for later inspection and then reset the state
-    pub fn backup_and_reset() -> Result<CliState> {
+    pub fn backup_and_reset() -> Result<()> {
         let dir = Self::default_dir()?;
 
         // Reset backup directory
@@ -97,7 +105,7 @@ impl CliState {
         let dir = &state.dir;
         let backup_dir = CliState::backup_default_dir().unwrap();
         eprintln!("The {dir:?} directory has been reset and has been backed up to {backup_dir:?}");
-        Ok(state)
+        Ok(())
     }
 
     /// Returns the default backup directory for the CLI state.
@@ -121,14 +129,10 @@ impl CliState {
     /// Create a new CliState where the data is stored at a given path
     pub(super) async fn create(dir: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(&dir)?;
-        let database = Arc::new(SqlxDatabase::create(Self::make_database_path(&dir)).await?);
+        let database = SqlxDatabase::create(Self::make_database_path(&dir)).await?;
         debug!("Opened the database with options {:?}", database);
         let state = Self { dir, database };
         Ok(state)
-    }
-
-    pub(super) fn database(&self) -> Arc<SqlxDatabase> {
-        self.database.clone()
     }
 
     pub(super) fn make_database_path(root_path: &Path) -> PathBuf {
@@ -172,4 +176,64 @@ impl CliState {
 /// Return a random, but memorable, name which can be used to name identities, nodes, vaults, etc...
 pub fn random_name() -> String {
     petname::petname(2, "-").unwrap_or(hex::encode(random::<[u8; 4]>()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use itertools::Itertools;
+    use std::fs;
+    use tempfile::NamedTempFile;
+
+    #[tokio::test]
+    async fn test_reset() -> Result<()> {
+        let db_file = NamedTempFile::new().unwrap();
+        let cli_state_directory = db_file.path().parent().unwrap().join(random_name());
+        let cli = CliState::create(cli_state_directory.clone()).await?;
+
+        // create 2 vaults
+        // the second vault is using a separate file
+        let _vault1 = cli.get_or_create_named_vault("vault1").await?;
+        let _vault2 = cli.get_or_create_named_vault("vault2").await?;
+
+        // create 2 identities
+        let identity1 = cli
+            .create_identity_with_name_and_vault("identity1", "vault1")
+            .await?;
+        let identity2 = cli
+            .create_identity_with_name_and_vault("identity2", "vault2")
+            .await?;
+
+        // create 2 nodes
+        let _node1 = cli
+            .create_node_with_identifier("node1", &identity1.identifier())
+            .await?;
+        let _node2 = cli
+            .create_node_with_identifier("node2", &identity2.identifier())
+            .await?;
+
+        let file_names = list_file_names(&cli_state_directory);
+        assert_eq!(
+            file_names.iter().sorted().as_slice(),
+            ["vault-vault2".to_string(), "database.sqlite3".to_string()]
+                .iter()
+                .sorted()
+                .as_slice()
+        );
+
+        // reset the local state
+        cli.reset().await?;
+        let result = fs::read_dir(cli_state_directory);
+        assert!(result.is_err(), "the cli state directory is deleted");
+
+        Ok(())
+    }
+
+    /// HELPERS
+    fn list_file_names(dir: &Path) -> Vec<String> {
+        fs::read_dir(dir)
+            .unwrap()
+            .map(|f| f.unwrap().file_name().to_string_lossy().to_string())
+            .collect()
+    }
 }
