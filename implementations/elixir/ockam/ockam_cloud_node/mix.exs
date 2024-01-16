@@ -44,6 +44,7 @@ defmodule Ockam.CloudNode.MixProject do
   end
 
   defp deps do
+    extra_applications: [:logger, :ockam]
     [
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
