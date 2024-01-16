@@ -3,7 +3,7 @@ defmodule Ockam.CloudNode.MixProject do
 
   @version "0.10.1"
 
-  @elixir_requirement "~> 1.10"
+  @elixir_requirement "~> 1.12"
 
   @ockam_github_repo "https://github.com/build-trust/ockam"
   @ockam_github_repo_path "implementations/elixir/ockam/ockam_cloud_node"
@@ -56,7 +56,7 @@ defmodule Ockam.CloudNode.MixProject do
       {:telemetry_metrics_prometheus, "~> 1.1.0"},
       # Needed to avoid conflict on ranch version used by cowboy (telemetry_metrics_prometheus dep)
       {:ranch, "~> 2.1.0", override: true},
-      {:sched_ex, "~> 1.0"}
+      {:sched_ex, "~> 1.0", runtime: false}
     ]
   end
 
