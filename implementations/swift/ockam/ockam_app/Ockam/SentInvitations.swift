@@ -4,13 +4,19 @@ struct SentInvitations: View {
     @State private var isHovered = false
     @State private var isOpen = false
     @ObservedObject var state: ApplicationState
-
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: VerticalSpacingUnit) {
-            HStack(spacing: HorizontalSpacingUnit) {
-                Text("Sent Invitations")
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                Image(systemName: "arrowshape.turn.up.left.2")
+                    .frame(width: 20)
+                    .font(.system(size: 12, weight: .bold))
+                    .padding(.trailing, StandardIconTextSpacing)
+                    .padding(.leading, HorizontalSpacingUnit)
+                
+                Text("Sent invitations")
                     .font(.body)
-                    .padding(.horizontal, HorizontalSpacingUnit)
+                    .padding(.trailing, HorizontalSpacingUnit)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .rotationEffect(
@@ -18,7 +24,7 @@ struct SentInvitations: View {
                     )
                     .padding([.trailing], HorizontalSpacingUnit)
             }
-            .frame(height: VerticalSpacingUnit*3)
+            .frame(height: VerticalSpacingUnit*3.5)
             .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation {
@@ -30,14 +36,29 @@ struct SentInvitations: View {
             }
             .background(isHovered ? Color.gray.opacity(0.25) : Color.clear)
             .cornerRadius(4)
-
+            .padding(.horizontal, WindowBorderSize)
+            
             if isOpen {
-                Group {
-                    ForEach(state.sent_invitations) { invitation in
-                        Text(invitation.email)
+                Divider()
+                    .padding(.top, WindowBorderSize)
+                
+                HStack(spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(state.sent_invitations) { invitation in
+                                Text(invitation.email)
+                                    .frame(height: VerticalSpacingUnit*3)
+                            }
+                        }
+                        .padding(.horizontal, HorizontalSpacingUnit*5)
                     }
+                    .scrollIndicators(ScrollIndicatorVisibility.never)
+                    .frame(maxHeight: 350)
+                    Spacer()
                 }
-                .padding(.horizontal, HorizontalSpacingUnit*2)
+                .padding(.vertical, VerticalSpacingUnit)
+                .background(HierarchicalShapeStyle.quinary)
+                Divider()
             }
         }
     }
@@ -46,7 +67,7 @@ struct SentInvitations: View {
 
 struct SentInvitations_Previews: PreviewProvider {
     @State static var state = swift_demo_application_state()
-
+    
     static var previews: some View {
         SentInvitations(state: state)
             .frame(width: 320, height: 200)

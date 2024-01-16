@@ -7,7 +7,7 @@ use tokio_retry::strategy::FixedInterval;
 use tokio_retry::Retry;
 
 use ockam::identity::models::ChangeHistory;
-use ockam::identity::{identities, Identifier, Identity};
+use ockam::identity::{Identifier, Identity};
 use ockam_core::api::Request;
 use ockam_core::errcode::{Kind, Origin};
 use ockam_core::{async_trait, Error, Result};
@@ -15,9 +15,11 @@ use ockam_multiaddr::MultiAddr;
 use ockam_node::{tokio, Context};
 
 use crate::cloud::addon::ConfluentConfig;
+use crate::cloud::email_address::EmailAddress;
+use crate::cloud::enroll::auth0::UserInfo;
 use crate::cloud::operation::{Operation, Operations};
 use crate::cloud::share::ShareScope;
-use crate::cloud::{Controller, ORCHESTRATOR_AWAIT_TIMEOUT};
+use crate::cloud::{ControllerClient, ORCHESTRATOR_AWAIT_TIMEOUT};
 use crate::error::ApiError;
 use crate::minicbor_url::Url;
 use crate::nodes::InMemoryNode;
@@ -42,7 +44,7 @@ pub struct Project {
     pub access_route: String,
 
     #[cbor(n(6))]
-    pub users: Vec<String>,
+    pub users: Vec<EmailAddress>,
 
     #[cbor(n(7))]
     pub space_id: String,
@@ -81,7 +83,7 @@ pub struct Project {
 #[cbor(map)]
 #[rustfmt::skip]
 pub struct ProjectUserRole {
-    #[n(1)] pub email: String,
+    #[n(1)] pub email: EmailAddress,
     #[n(2)] pub id: u64,
     #[n(3)] pub role: RoleInShare,
     #[n(4)] pub scope: ShareScope,
@@ -158,16 +160,9 @@ impl Project {
     /// Return the identity of the project's authority
     pub async fn authority_identity(&self) -> Result<Identity> {
         match &self.authority_identity {
-            Some(authority_identity) => {
-                let decoded = hex::decode(authority_identity.as_bytes())
-                    .map_err(|e| Error::new(Origin::Api, Kind::Serialization, e.to_string()))?;
-                let identities = identities().await?;
-                let identifier = identities
-                    .identities_creation()
-                    .import(None, &decoded)
-                    .await?;
-                Ok(identities.get_identity(&identifier).await?)
-            }
+            Some(authority_identity) => Ok(Identity::create(authority_identity)
+                .await
+                .map_err(|e| Error::new(Origin::Api, Kind::Serialization, e.to_string()))?),
             None => Err(Error::new(
                 Origin::Api,
                 Kind::NotFound,
@@ -179,10 +174,10 @@ impl Project {
         }
     }
 
-    pub fn has_admin_with_email(&self, email: &str) -> bool {
+    pub fn is_admin(&self, user: &UserInfo) -> bool {
         self.user_roles
             .iter()
-            .any(|ur| ur.role == RoleInShare::Admin && ur.email == email)
+            .any(|ur| ur.role == RoleInShare::Admin && ur.email == user.email)
     }
 
     pub async fn is_reachable(&self) -> Result<bool> {
@@ -389,7 +384,7 @@ pub trait Projects {
     ) -> miette::Result<Project>;
 }
 
-impl Controller {
+impl ControllerClient {
     pub async fn create_project(
         &self,
         ctx: &Context,
@@ -580,6 +575,44 @@ mod tests {
         assert_eq!(&socket_addr, "node.dnsaddr.com:4000");
     }
 
+    #[test]
+    fn test_is_admin() {
+        let mut g = Gen::new(100);
+        let mut project = Project::arbitrary(&mut g);
+
+        // it is possible to test if a user an administrator
+        // of the project by comparing the user email and the project role email
+        // the email comparison is case insensitive
+        project.user_roles = vec![create_admin("test@ockam.io")];
+        assert!(project.is_admin(&create_user("test@ockam.io")));
+        assert!(project.is_admin(&create_user("tEst@ockam.io")));
+        assert!(project.is_admin(&create_user("test@Ockam.io")));
+        assert!(project.is_admin(&create_user("TEST@OCKAM.IO")));
+    }
+
+    /// HELPERS
+
+    fn create_admin(email: &str) -> ProjectUserRole {
+        ProjectUserRole {
+            email: email.try_into().unwrap(),
+            id: 1,
+            role: RoleInShare::Admin,
+            scope: ShareScope::Project,
+        }
+    }
+
+    fn create_user(email: &str) -> UserInfo {
+        UserInfo {
+            sub: "name".to_string(),
+            nickname: "nickname".to_string(),
+            name: "name".to_string(),
+            picture: "picture".to_string(),
+            updated_at: "noon".to_string(),
+            email: email.try_into().unwrap(),
+            email_verified: false,
+        }
+    }
+
     impl Arbitrary for OktaConfig {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
@@ -601,7 +634,7 @@ mod tests {
                 name: String::arbitrary(g),
                 space_name: String::arbitrary(g),
                 access_route: String::arbitrary(g),
-                users: vec![String::arbitrary(g), String::arbitrary(g)],
+                users: vec![EmailAddress::arbitrary(g), EmailAddress::arbitrary(g)],
                 space_id: String::arbitrary(g),
                 identity: bool::arbitrary(g).then_some(Identifier(identifier)),
                 authority_access_route: bool::arbitrary(g).then(|| String::arbitrary(g)),

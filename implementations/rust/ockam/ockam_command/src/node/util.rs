@@ -1,5 +1,4 @@
 use std::env::current_exe;
-use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
@@ -8,8 +7,13 @@ use miette::{miette, Context as _};
 use rand::random;
 
 use ockam_api::cli_state::NamedTrustContext;
+use ockam_api::nodes::BackgroundNodeClient;
 use ockam_core::env::get_env_with_default;
+use ockam_node::Context;
 
+use crate::node::background::spawn_background_node;
+use crate::node::show::is_node_up;
+use crate::node::CreateCommand;
 use crate::util::api::TrustContextOpts;
 use crate::CommandGlobalOpts;
 
@@ -46,11 +50,18 @@ pub async fn delete_all_nodes(opts: &CommandGlobalOpts, force: bool) -> miette::
     Ok(())
 }
 
-pub async fn check_default(opts: &CommandGlobalOpts, name: &str) -> bool {
-    if let Ok(default_name) = opts.state.get_default_node().await.map(|n| n.name()) {
-        return default_name == name;
+pub async fn initialize_default_node(
+    ctx: &Context,
+    opts: &CommandGlobalOpts,
+) -> miette::Result<()> {
+    if opts.state.get_default_node().await.is_err() {
+        let cmd = CreateCommand::default();
+        let node_name = cmd.node_name.clone();
+        spawn_background_node(opts, cmd).await?;
+        let mut node = BackgroundNodeClient::create_to_node(ctx, &opts.state, &node_name).await?;
+        is_node_up(ctx, &mut node, true).await?;
     }
-    false
+    Ok(())
 }
 
 /// A utility function to spawn a new node into foreground mode
@@ -59,7 +70,6 @@ pub async fn spawn_node(
     opts: &CommandGlobalOpts,
     name: &str,
     identity_name: &Option<String>,
-    vault_name: &Option<String>,
     address: &str,
     trusted_identities: Option<&String>,
     trusted_identities_file: Option<&PathBuf>,
@@ -90,11 +100,6 @@ pub async fn spawn_node(
     if let Some(identity_name) = identity_name {
         args.push("--identity".to_string());
         args.push(identity_name.to_string());
-    }
-
-    if let Some(vault_name) = vault_name {
-        args.push("--vault".to_string());
-        args.push(vault_name.to_string());
     }
 
     if let Some(l) = launch_config {
@@ -138,47 +143,23 @@ pub async fn spawn_node(
 
     args.push(name.to_owned());
 
-    run_ockam(opts, name, args, logging_to_file).await
+    run_ockam(args).await
 }
 
 /// Run the ockam command line with specific arguments
-pub async fn run_ockam(
-    opts: &CommandGlobalOpts,
-    node_name: &str,
-    args: Vec<String>,
-    logging_to_file: bool,
-) -> miette::Result<()> {
+pub async fn run_ockam(args: Vec<String>) -> miette::Result<()> {
     // On systems with non-obvious path setups (or during
     // development) re-executing the current binary is a more
     // deterministic way of starting a node.
-    let ockam_exe = get_env_with_default("OCKAM", current_exe().unwrap_or_else(|_| "ockam".into()))
-        .into_diagnostic()?;
-
-    let mut cmd = Command::new(ockam_exe);
-
-    if logging_to_file {
-        let (mlog, elog) = {
-            (
-                opts.state.stdout_logs(node_name)?,
-                opts.state.stderr_logs(node_name)?,
-            )
-        };
-        let main_log_file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(mlog)
-            .into_diagnostic()
-            .context("failed to open log path")?;
-        let stderr_log_file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(elog)
-            .into_diagnostic()
-            .context("failed to open stderr log path")?;
-        cmd.stdout(main_log_file).stderr(stderr_log_file);
-    }
-
-    cmd.args(args)
+    let ockam_exe = current_exe().unwrap_or_else(|_| {
+        get_env_with_default("OCKAM", "ockam".to_string())
+            .unwrap()
+            .into()
+    });
+    Command::new(ockam_exe)
+        .args(args)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .stdin(Stdio::null())
         .spawn()
         .into_diagnostic()

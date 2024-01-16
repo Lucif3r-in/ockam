@@ -5,11 +5,12 @@ use tokio::{sync::Mutex, try_join};
 
 use ockam::Context;
 use ockam_api::nodes::models::services::{StartKafkaProducerRequest, StartServiceRequest};
-use ockam_api::nodes::BackgroundNode;
+use ockam_api::nodes::BackgroundNodeClient;
 use ockam_api::port_range::PortRange;
 use ockam_core::api::Request;
 use ockam_multiaddr::MultiAddr;
 
+use crate::node::util::initialize_default_node;
 use crate::node::NodeOpts;
 use crate::service::start::start_service_impl;
 use crate::terminal::OckamColor;
@@ -26,7 +27,15 @@ pub struct ArgOpts {
     pub project_route: MultiAddr,
 }
 
+/// Return a range of 100 ports after the bootstrap server port
+pub(crate) fn make_brokers_port_range(bootstrap_server: &SocketAddr) -> PortRange {
+    let boostrap_server_port = bootstrap_server.port();
+    // we can unwrap here because we know that range start <= range end
+    PortRange::new(boostrap_server_port + 1, boostrap_server_port + 100).unwrap()
+}
+
 pub async fn rpc(ctx: Context, (opts, args): (CommandGlobalOpts, ArgOpts)) -> miette::Result<()> {
+    initialize_default_node(&ctx, &opts).await?;
     let ArgOpts {
         endpoint,
         kafka_entity,
@@ -46,7 +55,7 @@ pub async fn rpc(ctx: Context, (opts, args): (CommandGlobalOpts, ArgOpts)) -> mi
 
     let is_finished = Mutex::new(false);
     let send_req = async {
-        let node = BackgroundNode::create(&ctx, &opts.state, &node_opts.at_node).await?;
+        let node = BackgroundNodeClient::create(&ctx, &opts.state, &node_opts.at_node).await?;
 
         let payload = StartKafkaProducerRequest::new(
             bootstrap_server.to_owned(),
@@ -95,10 +104,17 @@ pub async fn rpc(ctx: Context, (opts, args): (CommandGlobalOpts, ArgOpts)) -> mi
                     .to_string()
                     .color(OckamColor::PrimaryResource.color())
             ) + &fmt_log!(
-                "Brokers port range set to {}",
+                "Brokers port range set to {}\n\n",
                 &brokers_port_range
                     .to_string()
                     .color(OckamColor::PrimaryResource.color())
+            ) + &fmt_log!(
+                "{}\n",
+                "Kafka clients v3.4.x are supported.".color(OckamColor::FmtWARNBackground.color())
+            ) + &fmt_log!(
+                "{}\n",
+                "You can find the version you have with 'kafka-console-consumer.sh --version'."
+                    .color(OckamColor::FmtWARNBackground.color())
             ),
         )
         .write_line()?;

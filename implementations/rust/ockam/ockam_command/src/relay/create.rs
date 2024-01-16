@@ -12,11 +12,12 @@ use ockam::Context;
 use ockam_api::address::extract_address_value;
 use ockam_api::nodes::models::relay::RelayInfo;
 use ockam_api::nodes::service::relay::Relays;
-use ockam_api::nodes::BackgroundNode;
+use ockam_api::nodes::BackgroundNodeClient;
 use ockam_api::{is_local_node, CliState};
 use ockam_multiaddr::proto::Project;
 use ockam_multiaddr::{MultiAddr, Protocol};
 
+use crate::node::util::initialize_default_node;
 use crate::output::Output;
 use crate::terminal::OckamColor;
 use crate::util::{node_rpc, process_nodes_multiaddr};
@@ -39,7 +40,7 @@ pub struct CreateCommand {
     relay_name: String,
 
     /// Node for which to create the relay
-    #[arg(long, id = "NODE", value_parser = extract_address_value)]
+    #[arg(long, id = "NODE_NAME", value_parser = extract_address_value)]
     to: Option<String>,
 
     /// Route to the node at which to create the relay
@@ -113,6 +114,7 @@ impl CreateCommand {
 }
 
 async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, CreateCommand)) -> miette::Result<()> {
+    initialize_default_node(&ctx, &opts).await?;
     let cmd = cmd.parse_args(&opts).await?;
     let at = cmd.at();
     let alias = cmd.relay_name();
@@ -121,11 +123,13 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, CreateCommand)) -> m
     display_parse_logs(&opts);
     let is_finished: Mutex<bool> = Mutex::new(false);
 
-    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.to).await?;
+    let node = BackgroundNodeClient::create(&ctx, &opts.state, &cmd.to).await?;
     let get_relay_info = async {
         let relay_info = {
             if at.starts_with(Project::CODE) && cmd.authorized.is_some() {
-                return Err(miette!("--authorized can not be used with project addresses").into());
+                return Err(miette!(
+                    "--authorized can not be used with project addresses"
+                ))?;
             };
             info!("creating a relay at {} to {}", at, node.node_name());
             node.create_relay(&ctx, &at, Some(alias), cmd.authorized)

@@ -4,6 +4,93 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.116.0 - 2024-01-09
+
+### Added
+
+- Updated dependencies
+
+## 0.115.0 - 2024-01-04
+
+### Added
+
+- Introduce sql data node isolation
+- Updated dependencies
+
+### Changed
+
+- Do not force node_name on database creation
+
+## 0.114.0 - 2023-12-26
+
+### Changed
+
+- Close unneeded tcp connections in various clients
+- Updated dependencies
+
+## 0.113.0 - 2023-12-19
+
+### Changed
+
+- Updated dependencies
+
+## 0.112.0 - 2023-12-18
+
+### Changed
+
+- Updated dependencies
+
+## 0.111.0 - 2023-12-16
+
+### Added
+
+- Add `VersionedData::data_type`. remove hash truncation
+
+### Changed
+
+- Persist application data in a database
+- Dynamically parse the `--at` argument for `relay create` command
+- Rename reset option with-orchestrator to all
+- Ensure help output is plain text when piped or redirected
+- If the command fails to load the state, it will throw a message and abort
+- Split `node create` command code into separate files for background/foreground modes
+- Clean up `project ticket` command
+- Option to enroll without creating space nor project
+- Updated dependencies
+
+### Fixed
+
+- Honor the `timeout` arg value on `status` command
+- `reset` command do not fail when deleting orchestrator resources
+
+### Removed
+
+- Remove unused dependencies from ockam_command
+
+## 0.110.0 - 2023-12-15
+
+### Changed
+
+- Split `node create` command code into separate files for background/foreground modes
+- Clean up `project ticket` command
+- Updated dependencies
+
+## 0.109.0 - 2023-12-12
+
+### Changed
+
+- Ensure help output is plain text when piped or redirected
+- If the command fails to load the state, it will throw a message and abort
+- Updated dependencies
+
+## 0.108.0 - 2023-12-11
+
+### Changed
+
+- Dynamically parse the `--at` argument for `relay create` command
+- Rename reset option with-orchestrator to all
+- Updated dependencies
+
 ## 0.107.0 - 2023-12-06
 
 ### Added

@@ -1,12 +1,13 @@
 use clap::Args;
-use indoc::formatdoc;
+use miette::IntoDiagnostic;
 
 use ockam::Context;
 use ockam_api::nodes::models::transport::TransportStatus;
-use ockam_api::nodes::BackgroundNode;
+use ockam_api::nodes::BackgroundNodeClient;
 use ockam_core::api::Request;
 
 use crate::node::NodeOpts;
+use crate::output::Output;
 use crate::util::node_rpc;
 use crate::{docs, CommandGlobalOpts};
 
@@ -22,7 +23,7 @@ pub struct ShowCommand {
     #[command(flatten)]
     pub node_opts: NodeOpts,
 
-    /// TCP listener Worker Address or Tcp Address
+    /// TCP listener internal address or socket address
     pub address: String,
 }
 
@@ -36,33 +37,17 @@ async fn run_impl(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, ShowCommand),
 ) -> miette::Result<()> {
-    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.node_opts.at_node).await?;
+    let node = BackgroundNodeClient::create(&ctx, &opts.state, &cmd.node_opts.at_node).await?;
     let transport_status: TransportStatus = node
         .ask(
             &ctx,
             Request::get(format!("/node/tcp/listener/{}", &cmd.address)),
         )
         .await?;
-
-    let TransportStatus {
-        tt,
-        tm,
-        socket_addr,
-        processor_address,
-        flow_control_id,
-        ..
-    } = transport_status;
-
-    let plain = formatdoc! {r#"
-        TCP Listener:
-          Type: {tt}
-          Mode: {tm}
-          Socket address: {socket_addr}
-          Worker address: {processor_address}
-          Flow Control Id: {flow_control_id}
-    "#};
-
-    opts.terminal.stdout().plain(plain).write_line()?;
-
+    opts.terminal
+        .stdout()
+        .plain(transport_status.output()?)
+        .json(serde_json::to_string(&transport_status).into_diagnostic()?)
+        .write_line()?;
     Ok(())
 }

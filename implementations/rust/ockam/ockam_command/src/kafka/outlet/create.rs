@@ -7,9 +7,10 @@ use tokio::{sync::Mutex, try_join};
 use ockam::Context;
 use ockam_api::nodes::models::services::StartKafkaOutletRequest;
 use ockam_api::nodes::models::services::StartServiceRequest;
-use ockam_api::nodes::BackgroundNode;
+use ockam_api::nodes::BackgroundNodeClient;
 use ockam_core::api::Request;
 
+use crate::node::util::initialize_default_node;
 use crate::{
     fmt_log, fmt_ok,
     kafka::{kafka_default_outlet_addr, kafka_default_outlet_server},
@@ -40,6 +41,7 @@ impl CreateCommand {
 }
 
 async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, CreateCommand)) -> miette::Result<()> {
+    initialize_default_node(&ctx, &opts).await?;
     opts.terminal
         .write_line(&fmt_log!("Creating KafkaOutlet service"))?;
     let CreateCommand {
@@ -52,7 +54,7 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, CreateCommand)) -> m
         let payload = StartKafkaOutletRequest::new(bootstrap_server);
         let payload = StartServiceRequest::new(payload, &addr);
         let req = Request::post("/node/services/kafka_outlet").body(payload);
-        let node = BackgroundNode::create(&ctx, &opts.state, &node_opts.at_node).await?;
+        let node = BackgroundNodeClient::create(&ctx, &opts.state, &node_opts.at_node).await?;
 
         start_service_impl(&ctx, &node, "KafkaOutlet", req).await?;
         *is_finished.lock().await = true;

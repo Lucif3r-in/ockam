@@ -4,6 +4,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.59.0 - 2024-01-09
+
+### Added
+
+- Use `From` for converting errors
+- Make authority issued credentials ttl configurable
+- Updated dependencies
+
+## 0.58.0 - 2024-01-04
+
+### Added
+
+- Updated dependencies
+
+## 0.57.0 - 2023-12-26
+
+### Changed
+
+- Close unneeded tcp connections in various clients
+- Updated dependencies
+
+## 0.56.0 - 2023-12-19
+
+### Changed
+
+- Updated dependencies
+
+## 0.55.0 - 2023-12-18
+
+### Changed
+
+- Updated dependencies
+
+## 0.54.0 - 2023-12-16
+
+### Added
+
+- Add `VersionedData::data_type`. remove hash truncation
+
+### Changed
+
+- Persist application data in a database
+- Slim down the node manager worker(s_ch)
+- Updated dependencies
+
+### Fixed
+
+- Don't create default node when retrieving it and doesn't exist
+
+### Removed
+
+- Remove recursive calls in repository implementations
+
+## 0.53.0 - 2023-12-15
+
+### Changed
+
+- Updated dependencies
+
+## 0.52.0 - 2023-12-12
+
+### Changed
+
+- Updated dependencies
+
+## 0.51.0 - 2023-12-11
+
+### Changed
+
+- Slim down the node manager worker(s_ch)
+- Updated dependencies
+
 ## 0.50.0 - 2023-12-06
 
 ### Added

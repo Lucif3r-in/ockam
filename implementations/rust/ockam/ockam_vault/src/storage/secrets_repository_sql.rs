@@ -2,7 +2,6 @@ use sqlx::*;
 use tracing::debug;
 
 use ockam_core::async_trait;
-use ockam_core::compat::sync::Arc;
 use ockam_core::compat::vec::Vec;
 use ockam_core::errcode::{Kind, Origin};
 use ockam_core::Result;
@@ -18,21 +17,19 @@ use crate::{
 /// Implementation of a secrets repository using a SQL database
 #[derive(Clone)]
 pub struct SecretsSqlxDatabase {
-    database: Arc<SqlxDatabase>,
+    database: SqlxDatabase,
 }
 
 impl SecretsSqlxDatabase {
     /// Create a new database for policies keys
-    pub fn new(database: Arc<SqlxDatabase>) -> Self {
+    pub fn new(database: SqlxDatabase) -> Self {
         debug!("create a repository for secrets");
         Self { database }
     }
 
     /// Create a new in-memory database for policies
-    pub async fn create() -> Result<Arc<Self>> {
-        Ok(Arc::new(Self::new(
-            SqlxDatabase::in_memory("secrets").await?,
-        )))
+    pub async fn create() -> Result<Self> {
+        Ok(Self::new(SqlxDatabase::in_memory("secrets").await?))
     }
 }
 
@@ -55,7 +52,7 @@ impl SecretsRepository for SecretsSqlxDatabase {
             .bind(handle.to_sql())
             .bind(secret_type.to_sql())
             .bind(secret.to_sql());
-        query.execute(&self.database.pool).await.void()
+        query.execute(&*self.database.pool).await.void()
     }
 
     async fn delete_signing_secret(
@@ -63,7 +60,9 @@ impl SecretsRepository for SecretsSqlxDatabase {
         handle: &SigningSecretKeyHandle,
     ) -> Result<Option<SigningSecret>> {
         let mut transaction = self.database.begin().await.into_core()?;
-        let query1 = query_as("SELECT * FROM signing_secret WHERE handle=?").bind(handle.to_sql());
+        let query1 =
+            query_as("SELECT handle, secret_type, secret FROM signing_secret WHERE handle=?")
+                .bind(handle.to_sql());
         let row: Option<SigningSecretRow> =
             query1.fetch_optional(&mut *transaction).await.into_core()?;
         let secret = row.map(|r| r.signing_secret()).transpose()?;
@@ -83,17 +82,20 @@ impl SecretsRepository for SecretsSqlxDatabase {
         &self,
         handle: &SigningSecretKeyHandle,
     ) -> Result<Option<SigningSecret>> {
-        let query = query_as("SELECT * FROM signing_secret WHERE handle=?").bind(handle.to_sql());
+        let query =
+            query_as("SELECT handle, secret_type, secret FROM signing_secret WHERE handle=?")
+                .bind(handle.to_sql());
         let row: Option<SigningSecretRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         Ok(row.map(|r| r.signing_secret()).transpose()?)
     }
 
     async fn get_signing_secret_handles(&self) -> Result<Vec<SigningSecretKeyHandle>> {
-        let query = query_as("SELECT * FROM signing_secret");
-        let rows: Vec<SigningSecretRow> = query.fetch_all(&self.database.pool).await.into_core()?;
+        let query = query_as("SELECT handle, secret_type, secret FROM signing_secret");
+        let rows: Vec<SigningSecretRow> =
+            query.fetch_all(&*self.database.pool).await.into_core()?;
         Ok(rows
             .iter()
             .map(|r| r.handle())
@@ -108,7 +110,7 @@ impl SecretsRepository for SecretsSqlxDatabase {
         let query = query("INSERT OR REPLACE INTO x25519_secret VALUES (?, ?)")
             .bind(handle.to_sql())
             .bind(secret.to_sql());
-        query.execute(&self.database.pool).await.void()
+        query.execute(&*self.database.pool).await.void()
     }
 
     async fn delete_x25519_secret(
@@ -116,7 +118,8 @@ impl SecretsRepository for SecretsSqlxDatabase {
         handle: &X25519SecretKeyHandle,
     ) -> Result<Option<X25519SecretKey>> {
         let mut transaction = self.database.begin().await.into_core()?;
-        let query1 = query_as("SELECT * FROM x25519_secret WHERE handle=?").bind(handle.to_sql());
+        let query1 = query_as("SELECT handle, secret FROM x25519_secret WHERE handle=?")
+            .bind(handle.to_sql());
         let row: Option<X25519SecretRow> =
             query1.fetch_optional(&mut *transaction).await.into_core()?;
         let secret = row.map(|r| r.x25519_secret()).transpose()?;
@@ -136,21 +139,32 @@ impl SecretsRepository for SecretsSqlxDatabase {
         &self,
         handle: &X25519SecretKeyHandle,
     ) -> Result<Option<X25519SecretKey>> {
-        let query = query_as("SELECT * FROM x25519_secret WHERE handle=?").bind(handle.to_sql());
+        let query = query_as("SELECT handle, secret FROM x25519_secret WHERE handle=?")
+            .bind(handle.to_sql());
         let row: Option<X25519SecretRow> = query
-            .fetch_optional(&self.database.pool)
+            .fetch_optional(&*self.database.pool)
             .await
             .into_core()?;
         Ok(row.map(|r| r.x25519_secret()).transpose()?)
     }
 
     async fn get_x25519_secret_handles(&self) -> Result<Vec<X25519SecretKeyHandle>> {
-        let query = query_as("SELECT * FROM x25519_secret");
-        let rows: Vec<X25519SecretRow> = query.fetch_all(&self.database.pool).await.into_core()?;
+        let query = query_as("SELECT handle, secret FROM x25519_secret");
+        let rows: Vec<X25519SecretRow> = query.fetch_all(&*self.database.pool).await.into_core()?;
         Ok(rows
             .iter()
             .map(|r| r.handle())
             .collect::<Result<Vec<_>>>()?)
+    }
+
+    async fn delete_all(&self) -> Result<()> {
+        let mut transaction = self.database.begin().await.into_core()?;
+        let query1 = query("DELETE FROM signing_secret");
+        query1.execute(&mut *transaction).await.void()?;
+
+        let query2 = query("DELETE FROM x25519_secret");
+        query2.execute(&mut *transaction).await.void()?;
+        transaction.commit().await.void()
     }
 }
 
@@ -264,6 +278,8 @@ impl X25519SecretRow {
 mod test {
     use super::*;
 
+    use ockam_core::compat::sync::Arc;
+
     #[tokio::test]
     async fn test_signing_secrets_repository() -> Result<()> {
         let repository = create_repository().await?;
@@ -330,6 +346,6 @@ mod test {
 
     /// HELPERS
     async fn create_repository() -> Result<Arc<dyn SecretsRepository>> {
-        Ok(SecretsSqlxDatabase::create().await?)
+        Ok(Arc::new(SecretsSqlxDatabase::create().await?))
     }
 }

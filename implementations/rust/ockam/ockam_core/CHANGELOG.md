@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.101.0 - 2024-01-09
+
+### Added
+
+- Make authority issued credentials ttl configurable
+- Updated dependencies
+
+## 0.100.0 - 2024-01-04
+
+### Added
+
+- Updated dependencies
+
+## 0.99.0 - 2023-12-26
+
+### Changed
+
+- Updated dependencies
+
+## 0.98.0 - 2023-12-16
+
+### Changed
+
+- Slim down the node manager worker(s_ch)
+- Updated dependencies
+
+## 0.97.0 - 2023-12-12
+
+### Changed
+
+- Updated dependencies
+
+## 0.96.0 - 2023-12-11
+
+### Changed
+
+- Slim down the node manager worker(s_ch)
+- Updated dependencies
+
 ## 0.95.0 - 2023-12-06
 
 ### Changed

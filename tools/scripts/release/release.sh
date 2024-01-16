@@ -1,18 +1,33 @@
 #!/usr/bin/env bash
 set -e
 
-# Pipe set -x log to a file https://stackoverflow.com/questions/25593034/capture-x-debug-commands-into-a-file-in-bash
 log=$(mktemp)
 echo "Log directory is $log"
 
-exec 5>"$log"
-BASH_XTRACEFD="5"
+# Create a file descriptor that pipes stdout, stderr, and xtrace to a file and
+# only logs stdout and stderr to terminal.
+exec 3>"$log"
+exec > >(tee -a /dev/fd/3) 2>&1
+
+export BASH_XTRACEFD=3
 
 set -x
 
+# Function to execute on exit
+function on_exit() {
+  echo -e "\n\n=====> File log output can be found here $log" &>/dev/tty
+  set +x
+  unset BASH_XTRACEFD
+}
+
+# Set trap to call on_exit function on script exit
+trap on_exit EXIT
+
 GITHUB_USERNAME=$(gh api user | jq -r '.login')
 
-owner="build-trust"
+if [[ -z $OWNER ]]; then
+  OWNER="build-trust"
+fi
 release_name="release_$(date +'%d-%m-%Y')_$(date +'%s')"
 
 # Ensure all executables are installed
@@ -40,6 +55,19 @@ if [[ -z $IS_DRAFT_RELEASE ]]; then
   exit 1
 fi
 
+function failure_info() {
+  echo -e "\033[01;31m$1\033[00m"
+}
+
+function dialog_info() {
+  echo -e "\033[01;33m$1\033[00m"
+  read -r -p ""
+}
+
+function success_info() {
+  echo -e "\033[01;32m$1\033[00m"
+}
+
 function approve_deployment() {
   set -e
   local repository="$1"
@@ -47,13 +75,13 @@ function approve_deployment() {
 
   # completed waiting queued in_progress
   while true; do
-    status=$(gh api -H "Accept: application/vnd.github+json" "/repos/$owner/$repository/actions/runs/$run_id" | jq -r '.status')
+    status=$(gh api -H "Accept: application/vnd.github+json" "/repos/$OWNER/$repository/actions/runs/$run_id" | jq -r '.status')
     if [[ $status == "completed" ]]; then
       echo "Run ID $run_id completed"
       return
     elif [[ $status == "waiting" ]]; then
       # Get actions that need to be approved
-      pending_deployments=$(gh api -H "Accept: application/vnd.github+json" "/repos/$owner/$repository/actions/runs/$run_id/pending_deployments")
+      pending_deployments=$(gh api -H "Accept: application/vnd.github+json" "/repos/$OWNER/$repository/actions/runs/$run_id/pending_deployments")
       pending_length=$(echo "$pending_deployments" | jq '. | length')
 
       environments=""
@@ -66,70 +94,116 @@ function approve_deployment() {
         jq -n "{environment_ids: [$environments], state: \"approved\", comment: \"Ship It\"}" | gh api \
           --method POST \
           -H "Accept: application/vnd.github+json" \
-          "/repos/$owner/$repository/actions/runs/$run_id/pending_deployments" --input -
+          "/repos/$OWNER/$repository/actions/runs/$run_id/pending_deployments" --input - >>$log
       fi
     fi
-    sleep 120
+    sleep 5
   done
+}
+
+function watch_workflow_progress() {
+  set -e
+  repository="$1"
+  workflow_file_name="$2"
+  repo_branch="$3"
+
+  echo "Waiting for workflow to be in progress before kickstarting gh run watch"
+  while true; do
+    run_status=$(gh run list --workflow="$workflow_file_name" -b "$repo_branch" -u "$GITHUB_USERNAME" -L 1 -R ${OWNER}/${repository} --json databaseId,status)
+    status=$(jq -r '.[0].status' <<<$run_status)
+    run_id=$(jq -r '.[0].databaseId' <<<$run_status)
+
+    if [[ $status == 'in_progress' ]]; then
+      gh run watch "$run_id" --exit-status -R ${OWNER}/${repository} &>/dev/tty
+      return
+    fi
+  done
+}
+
+function approve_and_watch_workflow_progress() {
+  set -e
+  repository="$1"
+  workflow_file_name="$2"
+  repo_branch="$3"
+
+  run_id=$(gh run list --workflow="$workflow_file_name" -b "$repo_branch" -u "$GITHUB_USERNAME" -L 1 -R ${OWNER}/${repository} --json databaseId | jq -r '.[0].databaseId')
+  approve_deployment "$repository" "$run_id" &
+  watch_workflow_progress "$repository" "$workflow_file_name" "$repo_branch"
 }
 
 function ockam_bump() {
   set -e
-  gh workflow run create-release-pull-request.yml --ref develop -F branch_name="$release_name" -F git_tag="$GIT_TAG" -F ockam_bump_modified_release="$OCKAM_BUMP_MODIFIED_RELEASE" \
-    -F ockam_bump_release_version="$OCKAM_BUMP_RELEASE_VERSION" -F ockam_bump_bumped_dep_crates_version="$OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION" \
-    -R $owner/ockam
+  workflow_file_name="release-bump-pull-request.yml"
+  branch="develop"
 
-  workflow_file_name="create-release-pull-request.yml"
+  gh workflow run "$workflow_file_name" --ref "$branch" -F branch_name="$release_name" -F git_tag="$GIT_TAG" -F ockam_bump_modified_release="$OCKAM_BUMP_MODIFIED_RELEASE" \
+    -F ockam_bump_release_version="$OCKAM_BUMP_RELEASE_VERSION" -F ockam_bump_bumped_dep_crates_version="$OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION" \
+    -R $OWNER/ockam >>$log
+
   # Sleep for 10 seconds to ensure we are not affected by Github API downtime.
   sleep 10
   # Wait for workflow run
-  run_id=$(gh run list --workflow="$workflow_file_name" -b develop -u "$GITHUB_USERNAME" -L 1 -R $owner/ockam --json databaseId | jq -r .[0].databaseId)
+  approve_and_watch_workflow_progress "ockam" "$workflow_file_name" "$branch"
 
-  approve_deployment "ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/ockam
+  # Merge PR to a new branch
+  pr_link=$(gh pr create --title "Ockam Release $(date +'%d-%m-%Y')" --body "Ockam release" \
+    --base "$branch" -H "${release_name}" -R $OWNER/ockam)
 
-  # Merge PR to a new branch to kickstart workflow
-  gh pr create --title "Ockam Release $(date +'%d-%m-%Y')" --body "Ockam release" \
-    --base develop -H "${release_name}" -r mrinalwadhwa -R $owner/ockam
+  # Wait for PR to be created
+  success_info "Pull request that bumps ockam crates created ${pr_link}, please review and merge pull request to kickstart draft release..."
+
+  while true; do
+    state=$(gh pr view "$pr_link" --json state -R $OWNER/ockam | jq -r '.state')
+
+    if [[ "$state" == "MERGED" ]]; then
+      success_info "Pull request ${pr_link} merged, starting draft release..."
+      break
+    elif [[ "$state" == "OPEN" ]]; then
+      sleep 5
+      continue
+    elif [[ "$state" == "CLOSED" ]]; then
+      failure_info "Crate bump pull request was closed, aborting release."
+      exit 1
+    fi
+  done
 }
 
 function ockam_crate_release() {
   set -e
-  gh workflow run publish-crates.yml --ref develop \
-    -F release_branch="$release_name" -F git_tag="$GIT_TAG" -F ockam_publish_exclude_crates="$OCKAM_PUBLISH_EXCLUDE_CRATES" \
-    -F ockam_publish_recent_failure="$OCKAM_PUBLISH_RECENT_FAILURE" -R $owner/ockam
+
+  workflow_file_name="release-publish-crates.yml"
+  branch="develop"
+
+  # Crate release from the develop branch
+  gh workflow run "$workflow_file_name" --ref "$branch" \
+    -F release_branch="$branch" -F git_tag="$GIT_TAG" -F ockam_publish_exclude_crates="$OCKAM_PUBLISH_EXCLUDE_CRATES" \
+    -F ockam_publish_recent_failure="$OCKAM_PUBLISH_RECENT_FAILURE" -R $OWNER/ockam >>$log
   # Sleep for 10 seconds to ensure we are not affected by Github API downtime.
   sleep 10
-  # Wait for workflow run
-  run_id=$(gh run list --workflow=publish-crates.yml -b develop -u "$GITHUB_USERNAME" -L 1 -R $owner/ockam --json databaseId | jq -r .[0].databaseId)
-
-  approve_deployment "ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/ockam
+  approve_and_watch_workflow_progress "ockam" "$workflow_file_name" "$branch"
 }
 
 function release_ockam_binaries() {
   set -e
-  gh workflow run release-binaries.yml --ref develop -F git_tag="$GIT_TAG" -F release_branch="$release_name" -R $owner/ockam
+  workflow_file_name="release-draft-binaries.yml"
+  branch="develop"
+
+  gh workflow run "$workflow_file_name" --ref "$branch" -F git_tag="$GIT_TAG" -F release_branch="$branch" -R $OWNER/ockam >>$log
   # Wait for workflow run
   sleep 10
-  run_id=$(gh run list --workflow=release-binaries.yml -b develop -u "$GITHUB_USERNAME" -L 1 -R $owner/ockam --json databaseId | jq -r .[0].databaseId)
-
-  approve_deployment "ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/ockam
+  approve_and_watch_workflow_progress "ockam" "$workflow_file_name" "$branch"
 }
 
 function release_ockam_binaries_as_production() {
   set -e
   release_git_tag=$1
-  workflow_name="release-tag.yml"
+  workflow_name="release-production.yml"
+  branch="develop"
 
-  gh workflow run $workflow_name --ref develop -F git_tag="$release_git_tag" -R $owner/ockam
+  gh workflow run $workflow_name --ref "$branch" -F git_tag="$release_git_tag" -R $OWNER/ockam >>$log
 
   sleep 10
-  run_id=$(gh run list --workflow="$workflow_name" -b develop -u "$GITHUB_USERNAME" -L 1 -R $owner/ockam --json databaseId | jq -r .[0].databaseId)
-
-  approve_deployment "ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/ockam
+  approve_and_watch_workflow_progress "ockam" "$workflow_file_name" "$branch"
 }
 
 function release_ockam_package() {
@@ -137,58 +211,80 @@ function release_ockam_package() {
   tag="$1"
   file_and_sha="$2"
   is_release="$3"
+  branch="develop"
 
-  gh workflow run ockam-package.yml --ref develop -F tag="$tag" -F binaries_sha="$file_and_sha" -F is_release="$is_release" -R $owner/ockam
+  workflow_file_name="release-ockam-package.yml"
+
+  gh workflow run "$workflow_file_name" --ref "$branch" -F tag="$tag" -F binaries_sha="$file_and_sha" -F is_release="$is_release" -R $OWNER/ockam >>$log
   # Wait for workflow run
   sleep 10
-  run_id=$(gh run list --workflow=ockam-package.yml -b develop -u "$GITHUB_USERNAME" -L 1 -R $owner/ockam --json databaseId | jq -r .[0].databaseId)
-
-  approve_deployment "ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/ockam
+  approve_and_watch_workflow_progress "ockam" "$workflow_file_name" "$branch"
 }
 
 function homebrew_repo_bump() {
   set -e
   tag=$1
   file_and_sha=$2
+  branch="main"
 
-  gh workflow run create-release-pull-request.yml --ref main -F binaries="$file_and_sha" -F branch_name="$release_name" -F tag="$tag" -R $owner/homebrew-ockam
+  workflow_file_name="release-bump-pull-request.yml"
+
+  gh workflow run "$workflow_file_name" --ref "$branch" -F binaries="$file_and_sha" -F branch_name="$release_name" -F tag="$tag" -R $OWNER/homebrew-ockam >>$log
   # Wait for workflow run
   sleep 10
-  run_id=$(gh run list --workflow=create-release-pull-request.yml -b main -u "$GITHUB_USERNAME" -L 1 -R $owner/homebrew-ockam --json databaseId | jq -r .[0].databaseId)
-
-  approve_deployment "homebrew-ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/homebrew-ockam
+  approve_and_watch_workflow_progress "homebrew-ockam" "$workflow_file_name" "$branch"
 
   # Create PR to kickstart workflow
   gh pr create --title "Ockam Release $(date +'%d-%m-%Y')" --body "Ockam release" \
-    --base main -H "${release_name}" -r mrinalwadhwa -R $owner/homebrew-ockam
+    --base main -H "${release_name}" -r mrinalwadhwa -R $OWNER/homebrew-ockam >>$log
 }
 
 function terraform_repo_bump() {
   set -e
-  gh workflow run create-release-pull-request.yml --ref main -R $owner/terraform-provider-ockam -F tag="$1" -F branch_name="$release_name"
+  workflow_file_name="release-bump-pull-request.yml"
+  branch="main"
+
+  gh workflow run "$workflow_file_name" --ref "$branch" -R $OWNER/terraform-provider-ockam -F tag="$1" -F branch_name="$release_name" >>$log
   # Wait for workflow run
   sleep 10
-  run_id=$(gh run list --workflow=create-release-pull-request.yml -b main -u "$GITHUB_USERNAME" -L 1 -R $owner/terraform-provider-ockam --json databaseId | jq -r .[0].databaseId)
-
-  approve_deployment "terraform-provider-ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/terraform-provider-ockam
+  approve_and_watch_workflow_progress "terraform-provider-ockam" "$workflow_file_name" "$branch"
 
   # Create PR to kickstart workflow
   gh pr create --title "Ockam Release $(date +'%d-%m-%Y')" --body "Ockam release" \
-    --base main -H "${release_name}" -r mrinalwadhwa -R $owner/terraform-provider-ockam
+    --base main -H "${release_name}" -R $OWNER/terraform-provider-ockam >>$log
 }
 
 function terraform_binaries_release() {
   set -e
-  gh workflow run release.yml --ref main -R $owner/terraform-provider-ockam -F tag="$1"
+  workflow_file_name="release.yml"
+  branch="main"
+
+  gh workflow run "$workflow_file_name" --ref "$branch" -R $OWNER/terraform-provider-ockam -F tag="$1" >>$log
   # Wait for workflow run
   sleep 10
-  run_id=$(gh run list --workflow=release.yml -b main -u "$GITHUB_USERNAME" -L 1 -R $owner/terraform-provider-ockam --json databaseId | jq -r .[0].databaseId)
 
-  approve_deployment "terraform-provider-ockam" "$run_id" &
-  gh run watch "$run_id" --exit-status -R $owner/terraform-provider-ockam
+  approve_and_watch_workflow_progress "terraform-provider-ockam" "$workflow_file_name" "$branch"
+}
+
+function update_docs_repo() {
+  set -e
+  workflow_file_name="release-docs-update.yml"
+  release_tag="$1"
+  branch_name="main"
+
+  gh workflow run "$workflow_file_name" --ref branch_name -F branch_name="$release_name" -F ockam_ref="$release_tag" \
+    -R $owner/ockam-documentation
+  # Sleep for 10 seconds to ensure we are not affected by Github API downtime.
+  sleep 10
+
+  # Wait for workflow run
+  watch_workflow_progress "ockam-documentation" "$workflow_file_name" "$branch_name"
+
+  # Check if the branch was created, new branch is only created when there are new doc updates
+  if gh api "repos/build-trust/ockam-documentation/branches/${release_name}" --jq .name; then
+    gh pr create --title "Ockam Release $(date +'%d-%m-%Y')" --body "Ockam release" \
+      --base main -H "${release_name}" -r nazmulidris -R $owner/ockam-documentation
+  fi
 }
 
 function delete_ockam_draft_package() {
@@ -209,20 +305,11 @@ function delete_ockam_draft_package() {
         echo -n | gh api \
           --method DELETE \
           -H "Accept: application/vnd.github+json" \
-          "/orgs/$owner/packages/container/ockam/versions/$id" --input -
+          "/orgs/$OWNER/packages/container/ockam/versions/$id" --input - >>$log
         break
       fi
     done
   done
-}
-
-function dialog_info() {
-  echo -e "\033[01;33m$1\033[00m"
-  read -r -p ""
-}
-
-function success_info() {
-  echo -e "\033[01;32m$1\033[00m"
 }
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -231,19 +318,19 @@ if [[ $IS_DRAFT_RELEASE == true ]]; then
   if [[ -z $SKIP_OCKAM_BUMP || $SKIP_OCKAM_BUMP == false ]]; then
     echo "Starting Ockam crate bump"
     ockam_bump
-    success_info "Crate bump pull request created.... Starting Ockam crates.io publish."
+    success_info "Crate bump pull request created...."
   fi
 
   if [[ -z $SKIP_OCKAM_BINARY_RELEASE || $SKIP_OCKAM_BINARY_RELEASE == false ]]; then
-    echo "Releasing Ockam draft binaries"
+    success_info "Releasing Ockam draft binaries"
     release_ockam_binaries
-    success_info "Draft release has been created.... Starting Homebrew release."
+    success_info "Draft release assets has been created...."
   fi
 fi
 
 # Get latest tag
 if [[ -z $LATEST_TAG_NAME ]]; then
-  latest_tag_name=$(gh api -H "Accept: application/vnd.github+json" /repos/$owner/ockam/releases | jq -r .[0].tag_name)
+  latest_tag_name=$(gh api -H "Accept: application/vnd.github+json" /repos/$OWNER/ockam/releases | jq -r '.[0].tag_name')
   if [[ $latest_tag_name != *"ockam_v"* ]]; then
     echo "Invalid Git Tag retrieved"
     exit 1
@@ -261,7 +348,7 @@ if [[ $IS_DRAFT_RELEASE == true ]]; then
 
   temp_dir=$(mktemp -d)
   pushd "$temp_dir"
-  gh release download "$latest_tag_name" -p sha256sums.txt -R $owner/ockam
+  gh release download "$latest_tag_name" -p sha256sums.txt -R $OWNER/ockam
 
   # TODO Ensure that SHA are cosign verified
   while read -r line; do
@@ -275,69 +362,69 @@ if [[ $IS_DRAFT_RELEASE == true ]]; then
   popd
   rm -rf "/tmp/$release_name"
 
-  echo "File and hash are $file_and_sha"
+  echo "File and hash are $file_and_sha" >&3
 
   if [[ -z $SKIP_OCKAM_PACKAGE_DRAFT_RELEASE || $SKIP_OCKAM_PACKAGE_DRAFT_RELEASE == false ]]; then
-    echo "Releasing Ockam container image"
+    echo "Releasing Ockam docker image"
     release_ockam_package "$latest_tag_name" "$file_and_sha" false
-    success_info "Ockam package draft release successful.... Starting Homebrew release"
+    success_info "Ockam docker package draft release successful...."
   fi
 
   # Homebrew Release
   if [[ -z $SKIP_HOMEBREW_BUMP || $SKIP_HOMEBREW_BUMP == false ]]; then
     echo "Bumping Homebrew"
     homebrew_repo_bump "$latest_tag_name" "$file_and_sha"
-    success_info "Homebrew release successful.... Starting Terraform Release"
+    success_info "Homebrew release successful...."
   fi
 
   if [[ -z $SKIP_TERRAFORM_BUMP || $SKIP_TERRAFORM_BUMP == false ]]; then
     echo "Bumping Terraform"
     terraform_repo_bump "$latest_tag_name"
+
+    success_info "Ockam Terraform version bump successful"
   fi
 
   if [[ -z $SKIP_TERRAFORM_BINARY_RELEASE || $SKIP_TERRAFORM_BINARY_RELEASE == false ]]; then
     echo "Releasing Ockam Terraform binaries"
     terraform_binaries_release "$latest_tag_name"
+    success_info "Ockam Terraform binary release successful"
   fi
 
-  success_info "Terraform release successful"
+  if [[ -z $SKIP_DOCS_UPDATE || $SKIP_DOCS_UPDATE == false ]]; then
+    echo "Updating ockam documentation repository"
+    update_docs_repo "$latest_tag_name"
+    success_info "Ockam documentation repository pull request created..."
+  fi
+
+  success_info "Ockam draft release successful"
 fi
 
 # If we are to release to production, we check if all draft release was successful.
 if [[ $IS_DRAFT_RELEASE == false ]]; then
-  success_info "Vetting draft release...."
+  success_info "Checking if recent draft release was successful...."
 
   # Check if the SHAsum file exists for the released binaries. We generate shasum file
   # after all binaries are released.
   if [[ -z $SKIP_OCKAM_DRAFT_RELEASE || $SKIP_OCKAM_DRAFT_RELEASE == false ]]; then
-    gh release download "$latest_tag_name" -p sha256sums.txt -R $owner/ockam -O "$(mktemp -d)/sha256sums.txt"
+    gh release download "$latest_tag_name" -p sha256sums.txt -R $OWNER/ockam -O "$(mktemp -d)/sha256sums.txt"
   fi
 
   # Check if terraform SHAsum file exist in Terraform draft release.
   if [[ -z $SKIP_TERRAFORM_DRAFT_RELEASE || $SKIP_TERRAFORM_DRAFT_RELEASE == false ]]; then
-    gh release download "$latest_tag_name" -p "**SHA256SUMS" -R $owner/terraform-provider-ockam -O "$(mktemp -d)/sha256sums.txt"
-  fi
-
-  # To release crates to crates.io, we need to ensure that there's a bump PR that's open.
-  if [[ -z $SKIP_OCKAM_PACKAGE_RELEASE || $SKIP_OCKAM_PACKAGE_RELEASE == false ]]; then
-    ockam_prs=$(gh api -H "Accept: application/vnd.github+json" /repos/${owner}/ockam/pulls)
-    if [[ $ockam_prs != *"Ockam Release"* ]]; then
-      echo "Could not find ockam release PR"
-      exit 1
-    fi
+    gh release download "$latest_tag_name" -p "**SHA256SUMS" -R $OWNER/terraform-provider-ockam -O "$(mktemp -d)/sha256sums.txt"
   fi
 
   # Check if there's an homebrew PR
   if [[ -z $SKIP_OCKAM_HOMEBREW_RELEASE || $SKIP_OCKAM_HOMEBREW_RELEASE == false ]]; then
-    ockam_prs=$(gh api -H "Accept: application/vnd.github+json" /repos/${owner}/homebrew-ockam/pulls)
+    ockam_prs=$(gh api -H "Accept: application/vnd.github+json" /repos/${OWNER}/homebrew-ockam/pulls)
     if [[ $ockam_prs != *"Ockam Release"* ]]; then
       echo "Could not find homebrew release PR"
       exit 1
     fi
   fi
 
-  success_info "All draft release asset have been created. /ockam and /homebrew-ockam PRs can be merged now for release."
-  dialog_info "Press enter to start production release"
+  success_info "Recent draft release was successful"
+  dialog_info "Press enter to start final release"
 fi
 
 # Release to production
@@ -352,7 +439,7 @@ if [[ $IS_DRAFT_RELEASE == false ]]; then
   if [[ -z $SKIP_TERRAFORM_DRAFT_RELEASE || $SKIP_TERRAFORM_DRAFT_RELEASE == false ]]; then
     echo "Releasing Terraform release"
     terraform_tag=${latest_tag_name:6}
-    gh release edit "$terraform_tag" --draft=false -R $owner/terraform-provider-ockam
+    gh release edit "$terraform_tag" --draft=false -R $OWNER/terraform-provider-ockam
   fi
 
   # Release Ockam package
