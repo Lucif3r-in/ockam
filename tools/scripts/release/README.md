@@ -36,6 +36,10 @@ If `OCKAM_BUMP_BUMPED_DEP_CRATES_VERSION` is not defined then transitive depende
 
 ## Changelog Generation (Requires zsh)
 
+Review the release scripts and the `cargo-deny` configuration for any potential issues. Ensure that the scripts and configuration align with the project requirements and do not introduce any conflicts or errors.
+
+</section>
+
 Changelogs are generated using [git-cliff](https://github.com/orhun/git-cliff). To generate changelogs, we call the [changelog.sh script](https://github.com/build-trust/ockam/blob/develop/tools/scripts/release/changelog.sh) which will generate changelogs and append to their CHANGELOG.md file.
 To run changelog generator, from the Ockam root path, call
 ```bash
@@ -61,6 +65,16 @@ Note: Require cargo-release >= version 0.18.6
 We automate Git tagging and binary release over CI
 
 ## Manual Release
+
+## Troubleshooting GitHub Actions Failures
+
+If a GitHub Actions run fails, follow the steps below to troubleshoot and fix the issue:
+1. Analyze Error Logs: The first step is to carefully analyze the error logs to identify the specific problem. Look for error messages, stack traces, or any other relevant information that can help pinpoint the cause of the failure.
+2. Review Release Scripts: Take the time to review the release scripts to ensure that they are configured correctly. Make sure that all necessary steps are executed in the correct order.
+3. Check Cargo-Deny Configuration: Review the `cargo-deny` configuration for any potential issues. Ensure that the configuration aligns with the project requirements and that it does not introduce any conflicts or errors.
+
+
+## Crate Bump
 
 For a manual release to be done, we should
 
