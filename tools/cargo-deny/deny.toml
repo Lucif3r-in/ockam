@@ -1,10 +1,12 @@
 [bans]
 multiple-versions = "deny"
 # Dependencies cannot be specified with the "*" version.
+# Review the deny.toml file to ensure that the configuration for cargo-deny is correct.
 wildcards = "deny"
 
 [licenses]
 unlicensed = "deny"
+# Verify that the bans and licenses sections are properly configured.
 copyleft = "deny"
 confidence-threshold = 0.95
 allow = [
@@ -17,6 +19,7 @@ allow = [
   "BlueOak-1.0.0",
   "BSL-1.0",
 ]
+# Verify that the exceptions and clarifications for specific licenses are accurate.
 exceptions = [
   { allow = ["LicenseRef-Ring-ISC-OpenSSL"], name = "ring", version = "*" },
   { allow = ["Unicode-DFS-2016"], name = "unicode-ident", version = "*" },
@@ -48,7 +51,8 @@ license-files = [
   { path = "LICENSE", hash = 0x001c7e6c },
 ]
 
-[advisories]
+[# Verify that the bans and licenses sections are properly configured.
+advisories]
 unmaintained = "deny"
 vulnerability = "deny"
 yanked = "warn"
