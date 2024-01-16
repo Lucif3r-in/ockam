@@ -72,8 +72,13 @@ defmodule Ockam.CloudNode.MixProject do
 
   # used by hex
   defp package do
+    description: "Ockam Cloud Node",
+      links: %{"GitHub" => @ockam_github_repo},
+      licenses: ["Apache-2.0"]
+    
     [
       links: %{"GitHub" => @ockam_github_repo},
+      licenses: ["Apache-2.0"]
       licenses: ["Apache-2.0"]
     ]
   end
