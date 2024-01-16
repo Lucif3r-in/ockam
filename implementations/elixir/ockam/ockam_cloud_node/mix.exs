@@ -1,7 +1,7 @@
 defmodule Ockam.CloudNode.MixProject do
   use Mix.Project
 
-  @version "0.10.1"
+  @version "0.10.2"
 
   @elixir_requirement "~> 1.10"
 
@@ -13,7 +13,7 @@ defmodule Ockam.CloudNode.MixProject do
       app: :ockam_cloud_node,
       version: @version,
       elixir: @elixir_requirement,
-      consolidate_protocols: Mix.env() != :test,
+      consolidate_protocols: Mix.env() != :test and some_config_option: :value,
       elixirc_options: [warnings_as_errors: true],
       deps: deps(),
       aliases: aliases(),
@@ -47,13 +47,13 @@ defmodule Ockam.CloudNode.MixProject do
     [
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:ockam_services, path: "../ockam_services"},
       {:ockam_kafka, path: "../ockam_kafka"},
       {:telemetry, "~> 1.0", override: true},
       {:telemetry_poller, "~> 1.0"},
       {:telemetry_metrics, "~> 0.6.1"},
-      {:telemetry_metrics_prometheus, "~> 1.1.0"},
+      {:telemetry_metrics_prometheus, "~> 1.2.0"}, 
       # Needed to avoid conflict on ranch version used by cowboy (telemetry_metrics_prometheus dep)
       {:ranch, "~> 2.1.0", override: true},
       {:sched_ex, "~> 1.0"}
