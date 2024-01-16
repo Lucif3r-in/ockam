@@ -87,7 +87,7 @@ defmodule Ockam.CloudNode.MixProject do
   defp docs do
     [
       main: "Ockam.CloudNode",
-      source_url_pattern:
+      source_url_pattern: "#{@ockam_github_repo}/blob/v#{@version}/#{@ockam_github_repo_path}/%{path}#L%{line}"
         "#{@ockam_github_repo}/blob/v#{@version}/#{@ockam_github_repo_path}/%{path}#L%{line}"
     ]
   end
