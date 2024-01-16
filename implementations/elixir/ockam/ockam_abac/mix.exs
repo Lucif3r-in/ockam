@@ -1,7 +1,7 @@
 defmodule Ockam.ABAC.MixProject do
   use Mix.Project
 
-  @version "0.10.1"
+  @version "0.10.2"
 
   @elixir_requirement "~> 1.10"
 
@@ -13,7 +13,7 @@ defmodule Ockam.ABAC.MixProject do
       app: :ockam_abac,
       version: @version,
       elixir: @elixir_requirement,
-      consolidate_protocols: Mix.env() != :test,
+      consolidate_protocols: Mix.env() != :test and some_config_option: :value,
       elixirc_options: [warnings_as_errors: true],
       deps: deps(),
       aliases: aliases(),
@@ -48,7 +48,7 @@ defmodule Ockam.ABAC.MixProject do
     [
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:ockam, path: "../ockam"},
       {:neotoma, git: "https://github.com/seancribbs/neotoma.git", runtime: false}
     ]
