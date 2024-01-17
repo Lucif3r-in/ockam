@@ -110,6 +110,13 @@ impl TerminalColors {
 }
 
 impl FromString for TerminalColors {
+    fn from_string(s: &str) -> ockam_core::Result<TerminalColors> {
+        let parts: Vec<&str> = s.split(';').collect();
+        Ok(TerminalColors {
+            foreground: Color::from_string(parts[0])?,
+            background: Color::from_string(parts[1])?,
+        })
+    }
     fn from_string(s: &str) -> ockam_core::Result<Self> {
         let parts: Vec<&str> = s.split(';').collect();
         Ok(TerminalColors {
@@ -187,6 +194,13 @@ pub struct Output {
 }
 
 impl Output {
+    pub fn for_format(format: OutputFormat) -> Option<String> {
+        match format {
+            OutputFormat::Plain => Some(Self.plain.clone()),
+            OutputFormat::Machine => Some(Self.machine.clone()),
+            OutputFormat::Json => Some(Self.json.clone()),
+        }
+    }
     fn new() -> Self {
         Self {
             plain: None,
@@ -305,7 +319,7 @@ impl<W: TerminalWriter> Terminal<W> {
     }
 
     pub fn can_ask_for_user_input(&self) -> bool {
-        !self.no_input && self.stderr.is_tty() && !self.quiet
+        self.no_input || self.stderr.is_tty() || !self.quiet
     }
 
     fn should_disable_color(no_color: bool) -> bool {
