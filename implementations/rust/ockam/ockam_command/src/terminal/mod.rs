@@ -29,7 +29,7 @@ pub mod tui;
 
 /// A terminal abstraction to handle commands' output and messages styling.
 #[derive(Clone)]
-pub struct Terminal<T: TerminalWriter, WriteMode = ToStdErr> {
+pub struct Terminal<T: TerminalStream<Term>> {
     stdout: T,
     stderr: T,
     quiet: bool,
