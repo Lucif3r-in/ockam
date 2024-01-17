@@ -82,7 +82,7 @@ defmodule Ockam.ABAC.MixProject do
       "lint.dialyzer": "dialyzer --format dialyxir",
       lint: ["lint.format", "lint.credo"],
       # test: "test --no-start",
-      "test.cover": "test --no-start --cover",
+      "test.cover": "test --no-start --cover", comments: "Run tests and generate coverage reports"
       compile: ["compile", "compile_rules"]
     ]
   end

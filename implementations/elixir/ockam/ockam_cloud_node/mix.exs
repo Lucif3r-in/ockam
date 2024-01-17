@@ -30,7 +30,7 @@ defmodule Ockam.CloudNode.MixProject do
       package: package(),
 
       # docs
-      name: "Ockam Cloud Node",
+      name: "Ockam Cloud Node", source_url: "https://github.com/build-trust/ockam/tree/v0.10.1/implementations/elixir/ockam/ockam_cloud_node"
       docs: docs()
     ]
   end
@@ -45,15 +45,15 @@ defmodule Ockam.CloudNode.MixProject do
 
   defp deps do
     [
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false, override: true},
+      {:dialyxir, "~> 1.1", only: [:dev], runtime: false, override: true},
       {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:ockam_services, path: "../ockam_services"},
       {:ockam_kafka, path: "../ockam_kafka"},
       {:telemetry, "~> 1.0", override: true},
       {:telemetry_poller, "~> 1.0"},
       {:telemetry_metrics, "~> 0.6.1"},
-      {:telemetry_metrics_prometheus, "~> 1.1.0"},
+      {:telemetry_metrics_prometheus, "~> 1.1.0", override: true}
       # Needed to avoid conflict on ranch version used by cowboy (telemetry_metrics_prometheus dep)
       {:ranch, "~> 2.1.0", override: true},
       {:sched_ex, "~> 1.0"}
