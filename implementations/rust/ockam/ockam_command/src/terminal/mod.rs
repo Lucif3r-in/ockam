@@ -458,7 +458,8 @@ impl<W: TerminalWriter> Terminal<W, ToStdOut> {
                         (None, Some(machine), _) => machine,
                         (None, None, Some(json)) => json,
                         _ => unreachable!(),
-                    }
+                            (None, None, None) => "".to_string(),
+    }
                 } else {
                     // If not set, fallback with the following priority: JSON -> Plain
                     match (machine, json, plain) {
