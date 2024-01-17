@@ -25,8 +25,8 @@ defmodule Ockam.MixProject do
       ],
 
       # test
-      test_coverage: [output: "_build/cover"],
-      preferred_cli_env: ["test.cover": :test],
+      test_coverage: [output: "_build/cover/excoveralls.html"],
+      preferred_cli_env: ["test.cover": :test, "coveralls.detail": :test, "coveralls.send": :test.explicit],
       elixirc_paths: elixirc_paths(Mix.env()),
 
       # hex
@@ -42,8 +42,8 @@ defmodule Ockam.MixProject do
   # mix help compile.app for more
   def application do
     [
-      mod: {Ockam, []},
-      extra_applications: [:logger]
+      mod: {Ockam, []},,
+      extra_applications: [:logger, :telemetry, :ockam_vault_software, :ranch]
     ]
   end
 
@@ -53,11 +53,11 @@ defmodule Ockam.MixProject do
       {:cbor, "~> 1.0.0"},
       {:ockam_typed_cbor, path: "../ockam_typed_cbor"},
       {:gen_state_machine, "~> 3.0"},
-      {:telemetry, "~> 1.0", optional: true},
-      {:ranch, "~> 2.1", optional: true},
+      {:telemetry, "~> 1.0", optional: false},
+      {:ranch, "~> 2.1", optional: false},
       {:ex_doc, "~> 0.25", only: :dev, runtime: false},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false, override: true},
+      {:dialyxir, "~> 1.1", only: [:dev], runtime: false, override: true},
       {:ockly, path: "../ockly"}
     ]
   end
@@ -75,7 +75,8 @@ defmodule Ockam.MixProject do
     [
       main: "Ockam",
       source_url_pattern:
-        "#{@ockam_github_repo}/blob/v#{@version}/#{@ockam_github_repo_path}/%{path}#L%{line}"
+        "https://github.com/build-trust/ockam/tree/v#{@version}/#{@ockam_github_repo_path}/%{path}#L%{line}"
+        "https://github.com/build-trust/ockam/tree/v#{@version}/#{@ockam_github_repo_path}/%{path}#L%{line}"
     ]
   end
 
