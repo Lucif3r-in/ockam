@@ -14,6 +14,7 @@ export BASH_XTRACEFD=3
 
 if [[ -z $OWNER ]]; then
   OWNER="build-trust"
+  TAG_NAME="ockam_v1.2.3"
 fi
 
 USER_TYPE="users"
@@ -104,7 +105,7 @@ function fail_if_release_is_already_in_production() {
   is_draft=$(gh release view $TAG_NAME -R ${OWNER}/ockam --json isDraft | jq -r '.isDraft')
   if [[ $is_draft == 'false' ]]; then
     echo "Tag name $TAG_NAME does not exist"
-    exit 1
+    return 1
   fi
 }
 
