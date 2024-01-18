@@ -57,6 +57,9 @@ defmodule Ockam.MixProject do
       {:ranch, "~> 2.1", optional: true},
       {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      
+      {:telemetry, "~> 1.0", optional: true},
+      {:ranch, "~> 2.1", optional: true},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
       {:ockly, path: "../ockly"}
     ]
