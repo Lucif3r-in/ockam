@@ -50,7 +50,7 @@ defmodule Ockam.ABAC.MixProject do
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:ockam, path: "../ockam"},
-      {:neotoma, git: "https://github.com/seancribbs/neotoma.git", runtime: false}
+      {:neotoma, git: "https://github.com/seancribbs/neotoma.git", runtime: false},{:neotoma, git: "https://github.com/seancribbs/neotoma.git", runtime: false}
     ]
   end
 
