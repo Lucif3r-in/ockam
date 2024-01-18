@@ -443,7 +443,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdOut> {
             && self.mode.output.machine.is_none()
             && self.mode.output.json.is_none()
         {
-            return Err(miette!("At least one output format must be defined"))?;
+            return Err(miette!("At least one of the output formats must be defined"))?;
         }
 
         let plain = self.mode.output.plain.as_ref();
@@ -472,7 +472,7 @@ impl<W: TerminalWriter> Terminal<W, ToStdOut> {
             }
             // If not set, no fallback is provided and returns an error
             OutputFormat::Json => {
-                json.ok_or(miette!("JSON output is not defined for this command"))?
+                json.ok_or_else(|| miette!("JSON output is not defined for this command"))?              
             }
         };
         self.stdout.write_line(msg)
