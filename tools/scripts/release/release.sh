@@ -47,7 +47,7 @@ if [[ $executables_installed == false ]]; then
 fi
 
 if [[ -z $OCKAM_PUBLISH_RECENT_FAILURE ]]; then
-  OCKAM_PUBLISH_RECENT_FAILURE=false
+  OCKAM_PUBLISH_RECENT_FAILURE=true
 fi
 
 if [[ -z $IS_DRAFT_RELEASE ]]; then
