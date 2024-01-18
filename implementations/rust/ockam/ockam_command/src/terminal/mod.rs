@@ -8,8 +8,8 @@ use console::Term;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::Context as _;
 use miette::{miette, IntoDiagnostic};
-use tokio::sync::Mutex;
-use tokio::time::sleep;
+use tokio::sync::Mutex as _;
+use tokio::time::sleep as _;
 
 pub use colors::*;
 pub use fmt::*;
@@ -196,7 +196,7 @@ impl Output {
     }
 }
 
-/// Trait defining the main methods to write messages to a terminal stream.
+/// /// Trait defining the main methods to write messages to a terminal stream.
 pub trait TerminalWriter: Clone {
     fn stdout(no_color: bool) -> Self;
     fn stderr(no_color: bool) -> Self;
@@ -227,7 +227,8 @@ impl<W: TerminalWriter> Terminal<W> {
         }
     }
 
-    pub fn is_tty(&self) -> bool {
+    /// Check if the terminal is a TTY.
+pub fn is_tty(&self) -> bool {
         self.stderr.is_tty()
     }
 
