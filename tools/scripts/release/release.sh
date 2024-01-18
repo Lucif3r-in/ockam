@@ -322,7 +322,7 @@ if [[ $IS_DRAFT_RELEASE == false ]]; then
   fi
 
   if [[ -z $SKIP_OCKAM_BINARY_RELEASE || $SKIP_OCKAM_BINARY_RELEASE == false ]]; then
-    success_info "Releasing Ockam draft binaries"
+    success_info "Skipping release of Ockam draft binaries"
     release_ockam_binaries
     success_info "Draft release assets has been created...."
   fi
