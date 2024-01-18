@@ -329,7 +329,7 @@ if [[ $IS_DRAFT_RELEASE == false ]]; then
 fi
 
 # Get latest tag
-if [[ -z $LATEST_TAG_NAME ]]; then
+if [[ -z $LATEST_TAG_NAME || $IS_DRAFT_RELEASE == false ]]; then
   latest_tag_name=$(gh api -H "Accept: application/vnd.github+json" /repos/$OWNER/ockam/releases | jq -r '.[0].tag_name')
   if [[ $latest_tag_name != *"ockam_v"* ]]; then
     echo "Invalid Git Tag retrieved"
