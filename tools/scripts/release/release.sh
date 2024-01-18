@@ -315,7 +315,7 @@ function delete_ockam_draft_package() {
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 # Perform Ockam bump and binary draft release if specified
 if [[ $IS_DRAFT_RELEASE == false ]]; then
-  if [[ -z $SKIP_OCKAM_BUMP || $SKIP_OCKAM_BUMP == false ]]; then
+  if [[ -z $SKIP_OCKAM_BUMP || $SKIP_OCKAM_BUMP == true ]]; then
     echo "Starting Ockam crate bump"
     ockam_bump
     success_info "Crate bump pull request created...."
