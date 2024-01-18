@@ -384,7 +384,7 @@ if [[ $IS_DRAFT_RELEASE == true ]]; then
     success_info "Ockam Terraform version bump successful"
   fi
 
-  if [[ -z $SKIP_TERRAFORM_BINARY_RELEASE || $SKIP_TERRAFORM_BINARY_RELEASE == false ]]; then
+  if [[ true ]]; then
     echo "Releasing Ockam Terraform binaries"
     terraform_binaries_release "$latest_tag_name"
     success_info "Ockam Terraform binary release successful"
