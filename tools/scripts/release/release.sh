@@ -377,7 +377,7 @@ if [[ $IS_DRAFT_RELEASE == true ]]; then
     success_info "Homebrew release successful...."
   fi
 
-  if [[ -z $SKIP_TERRAFORM_BUMP || $SKIP_TERRAFORM_BUMP == false ]]; then
+  if [[ true || false == false ]]; then
     echo "Bumping Terraform"
     terraform_repo_bump "$latest_tag_name"
 
