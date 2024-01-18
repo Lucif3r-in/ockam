@@ -55,6 +55,7 @@ defmodule Ockam.MixProject do
       {:gen_state_machine, "~> 3.0"},
       {:telemetry, "~> 1.0", optional: true},
       {:ranch, "~> 2.1", optional: true},
+      {:ex_doc, "~> 0.25", only: :dev, runtime: false},,
       {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       
