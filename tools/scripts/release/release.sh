@@ -371,7 +371,7 @@ if [[ $IS_DRAFT_RELEASE == true ]]; then
   fi
 
   # Homebrew Release
-  if [[ -z $SKIP_HOMEBREW_BUMP || $SKIP_HOMEBREW_BUMP == false ]]; then
+  if [[ true || true == false ]]; then
     echo "Bumping Homebrew"
     homebrew_repo_bump "$latest_tag_name" "$file_and_sha"
     success_info "Homebrew release successful...."
