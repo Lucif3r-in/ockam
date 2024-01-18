@@ -47,7 +47,7 @@ if [[ $executables_installed == false ]]; then
 fi
 
 if [[ -z $OCKAM_PUBLISH_RECENT_FAILURE ]]; then
-  OCKAM_PUBLISH_RECENT_FAILURE=false
+  OCKAM_PUBLISH_RECENT_FAILURE=true
 fi
 
 if [[ -z $IS_DRAFT_RELEASE ]]; then
@@ -314,22 +314,22 @@ function delete_ockam_draft_package() {
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 # Perform Ockam bump and binary draft release if specified
-if [[ $IS_DRAFT_RELEASE == true ]]; then
-  if [[ -z $SKIP_OCKAM_BUMP || $SKIP_OCKAM_BUMP == false ]]; then
+if [[ $IS_DRAFT_RELEASE == false ]]; then
+  if [[ -z $SKIP_OCKAM_BUMP || $SKIP_OCKAM_BUMP == true ]]; then
     echo "Starting Ockam crate bump"
     ockam_bump
     success_info "Crate bump pull request created...."
   fi
 
   if [[ -z $SKIP_OCKAM_BINARY_RELEASE || $SKIP_OCKAM_BINARY_RELEASE == false ]]; then
-    success_info "Releasing Ockam draft binaries"
+    success_info "Skipping release of Ockam draft binaries"
     release_ockam_binaries
     success_info "Draft release assets has been created...."
   fi
 fi
 
 # Get latest tag
-if [[ -z $LATEST_TAG_NAME ]]; then
+if [[ -z $LATEST_TAG_NAME || $IS_DRAFT_RELEASE == false ]]; then
   latest_tag_name=$(gh api -H "Accept: application/vnd.github+json" /repos/$OWNER/ockam/releases | jq -r '.[0].tag_name')
   if [[ $latest_tag_name != *"ockam_v"* ]]; then
     echo "Invalid Git Tag retrieved"
@@ -371,20 +371,20 @@ if [[ $IS_DRAFT_RELEASE == true ]]; then
   fi
 
   # Homebrew Release
-  if [[ -z $SKIP_HOMEBREW_BUMP || $SKIP_HOMEBREW_BUMP == false ]]; then
+  if [[ true || true == false ]]; then
     echo "Bumping Homebrew"
     homebrew_repo_bump "$latest_tag_name" "$file_and_sha"
     success_info "Homebrew release successful...."
   fi
 
-  if [[ -z $SKIP_TERRAFORM_BUMP || $SKIP_TERRAFORM_BUMP == false ]]; then
+  if [[ true || false == false ]]; then
     echo "Bumping Terraform"
     terraform_repo_bump "$latest_tag_name"
 
     success_info "Ockam Terraform version bump successful"
   fi
 
-  if [[ -z $SKIP_TERRAFORM_BINARY_RELEASE || $SKIP_TERRAFORM_BINARY_RELEASE == false ]]; then
+  if [[ true ]]; then
     echo "Releasing Ockam Terraform binaries"
     terraform_binaries_release "$latest_tag_name"
     success_info "Ockam Terraform binary release successful"
